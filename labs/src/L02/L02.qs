@@ -36,7 +36,6 @@ namespace MITRE.QSD.L02 {
         // arithmetic between Doubles and Ints directly.
 
         // TODO
-
         // get the value of the pi constant and the length of the qubit array
         let pi = PI();
 
@@ -84,8 +83,8 @@ namespace MITRE.QSD.L02 {
         // directly and update each of its values with the apply-and-replace
         // operator, or append each Int to the array as you go. Use whichever
         // method you prefer.
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Diagnostics;
+        // open Microsoft.Quantum.Convert;
+        // open Microsoft.Quantum.Diagnostics;
         // TODO
         let arrayLength = Length(qubits);
         mutable output = [0, size=arrayLength];
@@ -107,8 +106,9 @@ namespace MITRE.QSD.L02 {
     /// outcomes. For example, if it had three qubits, you would have to put
     /// it into this state:
     ///
-    ///     |+++> = 1/√8(|000> + |001> + |010> + |011>
-    ///                + |100> + |101> + |110> + |111>)
+    ///     |+++> =                               1
+    ///             ---------------------------------------------------------------
+    ///            √8 (|000> + |001> + |010> + |011> + |100> + |101> + |110> + |111>)
     ///
     /// # Input
     /// ## register
@@ -121,7 +121,11 @@ namespace MITRE.QSD.L02 {
     /// each superposition term has an equal amplitude to the others.
     operation E03_PrepareUniform (register : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        // loop through the qubits and apply the Hadamard gate
+        for i in 0 .. Length(register) - 1 {
+            // apply the Hadamard gate to get superposition
+            H(register[i]);
+        }
     }
 
     /// # Summary
@@ -130,7 +134,9 @@ namespace MITRE.QSD.L02 {
     /// constructed in the previous exercise.) Your goal is to flip the phase
     /// of every odd-valued term in the superposition, preparing the state:
     ///
-    ///     1/√N(|0> - |1> + |2> - |3> + |4> - ... - |N-1>)
+    ///                                 1
+    ///             --------------------------------------------
+    ///            √N (|0> - |1> + |2> - |3> + |4> - ... - |N-1>)
     ///
     /// Note that, in the above expression, N = 2^(Length(register))
     ///
@@ -145,6 +151,37 @@ namespace MITRE.QSD.L02 {
     /// values.
     operation E04_PhaseFlipOddTerms (register : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        let registerLength = Length(register);
+        for i in 0 .. registerLength - 1 {
+            // detect odd indices
+            if (i % 2 == 1) {
+                // Z gate does a 180 degree phase flip
+                Z(register[i]);
+            }
+        }
     }
+
+
+
+    // operation E04_PhaseFlipOddTerms (register : Qubit[]) : Unit {
+    //     let registerLength = Length(register);
+    //     for i in 0 .. registerLength - 1 {
+
+    //         // get qubit length
+    //         let numQubits = Length(registerLength[i]);
+
+    //         // detect odd indices
+    //         if (i % 2 == 1) {
+    //             // Z gate does a 180 degree phase flip
+    //             Z(register[i]);
+
+    //             let measurement = M(register[i]);
+    //             let resultAsInt = measurement == Zero ? 0 | 1;
+    //             Message("The qubit number {i} before rotation is: {resultAsInt} ");
+    //         }
+    //     }
+    // }
+
+
+
 }
