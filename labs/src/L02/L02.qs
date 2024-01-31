@@ -36,7 +36,25 @@ namespace MITRE.QSD.L02 {
         // arithmetic between Doubles and Ints directly.
 
         // TODO
-        fail "Not implemented.";
+
+        // get the value of the pi constant and the length of the qubit array
+        let pi = PI();
+
+        // loop through the qubits and apply the rotation
+        for i in 0 .. Length(qubits) - 1 {
+            // measure the qubit before the rotation
+            // let qubitBefore = M(qubits[i]);
+            // calculate the rotation amount
+            let rotateAmount = IntAsDouble(i) * 15.0 * (pi / 180.0);
+            // rotate about the Y axis
+            Ry(rotateAmount, qubits[i]);
+            // measure the qubit after the rotation
+            // let qubitAfter = M(qubits[i]);
+
+            // debug
+            // Message("The qubit number " + i + "  before rotation is: " + qubitBefore);
+            // Message("The qubit number " + i + "  after rotation is: " + qubitAfter);
+        }
     }
 
 
@@ -66,9 +84,20 @@ namespace MITRE.QSD.L02 {
         // directly and update each of its values with the apply-and-replace
         // operator, or append each Int to the array as you go. Use whichever
         // method you prefer.
-
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Diagnostics;
         // TODO
-        fail "Not implemented.";
+        let arrayLength = Length(qubits);
+        mutable output = [0, size=arrayLength];
+
+        for i in 0 .. arrayLength - 1 {
+            let measurement = M(qubits[i]);
+            // result of measurement can be a 0 or 1 but add logic to get integer
+            let resultAsInt = measurement == Zero ? 0 | 1;
+            // assign measurement to corresponding qubit index in resultant array
+            set output w/= i <- resultAsInt;
+        }
+        return output;
     }
 
     /// # Summary

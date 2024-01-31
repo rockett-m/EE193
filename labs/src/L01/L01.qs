@@ -6,9 +6,9 @@
 
 namespace MITRE.QSD.L01 {
 
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
-
 
     /// # Summary
     /// In this exercise, you are given a single qubit which is in the |0>
@@ -23,37 +23,23 @@ namespace MITRE.QSD.L01 {
     /// This investigates how to apply quantum gates to qubits in Q#.
     operation E01_BitFlip (target: Qubit) : Unit {
         // TODO
-        // fail "Not implemented.";
-
-        // measure the qubit's initial state
-        let initial = M(target);
-
-        // log the initial state to the console
-        Message($"The qubit is in the {initial} state.");
-
-        // if the qubit is in the |0> state, flip it to |1>
-        if (initial == Zero) {
-            // tell the user what we're doing
-            Message("Flipping the qubit from |0> to the |1> state.");
-            // apply the X gate to flip the qubit from |0> to |1>
-            X(target);
+        if not CheckZero(target) {
+            Message("[Error] The qubit is not in the |0> state.");
         } else {
-            // should not happen but let the user know
-            Message("The qubit is already in the |1> state.");
+            Message("The qubit is in the |0> state.");
+            X(target);
+            if not CheckZero(target) {
+                Message("The qubit was switched to the |1> state.");
+            }
         }
-
-        // measure the qubit's final state
-        let final = M(target);
-        // log the final state to the console
-        Message($"The qubit is in the {final} state.");
-
     }
 
     /// # Summary
     /// In this exercise, you are given two qubits. Both of them are in the |0>
     /// state. Using the single-qubit gates, turn them into the |+> state and
-    /// |-> state respectively. Recall the |+> state is 1/√2(|0> + |1>) and the
-    /// |-> state is 1/√2(|0> - |1>).
+    /// |-> state respectively. Recall the 
+    /// |+> state is 1/√2(|0> + |1>)
+    /// |-> state is 1/√2(|0> - |1>)
     ///
     /// # Input
     /// ## targetA
@@ -66,6 +52,45 @@ namespace MITRE.QSD.L01 {
     /// This investigates how to prepare the |+> and |-> states.
     operation E02_PrepPlusMinus (targetA : Qubit, targetB : Qubit) : Unit {
         // TODO
-        fail "Not implemented.";
+
+        // Turn this qubit from |0> to |+>.
+        H(targetA);
+
+        // Turn this qubit from |0> to |->
+        X(targetB);
+        H(targetB);
+
+
+        // all of this code breaks the test \/
+        //
+        // let initialA = M(targetA);
+        // let initialB = M(targetB);
+
+        // Message($"The qubit A is in the {initialA} state.");
+        // Message($"The qubit B is in the {initialB} state.");
+
+        // if CheckZero(targetA) {
+        //     Message("Turning qubit A from |0> to |+> ");
+        //     H(targetA);
+        // } else {
+        //     Message("[Error] The qubit A is not in the |0> state.");
+        // }
+
+        // if CheckZero(targetB) {
+        //     Message("Turning qubit B from |0> to |-> ");
+        //     X(targetB);
+        //     H(targetB);
+        // } else {
+        //     Message("[Error] The qubit B is not in the |0> state.");
+        // }
+
+        // // debug
+        // let finalA = M(targetA);
+        // let finalB = M(targetB);
+
+        // Message($"The qubit A is in the {finalA} state.");
+        // Message($"The qubit B is in the {finalB} state.");
+        //
+        // all of this code breaks the test /\
     }
 }
