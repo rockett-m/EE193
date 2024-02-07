@@ -59,38 +59,37 @@ namespace MITRE.QSD.L01 {
         // Turn this qubit from |0> to |->
         X(targetB);
         H(targetB);
-
-
-        // all of this code breaks the test \/
-        //
-        // let initialA = M(targetA);
-        // let initialB = M(targetB);
-
-        // Message($"The qubit A is in the {initialA} state.");
-        // Message($"The qubit B is in the {initialB} state.");
-
-        // if CheckZero(targetA) {
-        //     Message("Turning qubit A from |0> to |+> ");
-        //     H(targetA);
-        // } else {
-        //     Message("[Error] The qubit A is not in the |0> state.");
-        // }
-
-        // if CheckZero(targetB) {
-        //     Message("Turning qubit B from |0> to |-> ");
-        //     X(targetB);
-        //     H(targetB);
-        // } else {
-        //     Message("[Error] The qubit B is not in the |0> state.");
-        // }
-
-        // // debug
-        // let finalA = M(targetA);
-        // let finalB = M(targetB);
-
-        // Message($"The qubit A is in the {finalA} state.");
-        // Message($"The qubit B is in the {finalB} state.");
-        //
-        // all of this code breaks the test /\
     }
 }
+
+// all of this code breaks the test \/ (measurement changes results)
+// operation E02_PrepPlusMinus (targetA : Qubit, targetB : Qubit) : Unit {
+// let initialA = M(targetA);
+// let initialB = M(targetB);
+
+// Message($"The qubit A is in the {initialA} state.");
+// Message($"The qubit B is in the {initialB} state.");
+
+// if CheckZero(targetA) {
+//     Message("Turning qubit A from |0> to |+> ");
+//     H(targetA);
+// } else {
+//     Message("[Error] The qubit A is not in the |0> state.");
+// }
+
+// if CheckZero(targetB) {
+//     Message("Turning qubit B from |0> to |-> ");
+//     X(targetB);
+//     H(targetB);
+// } else {
+//     Message("[Error] The qubit B is not in the |0> state.");
+// }
+
+// // debug
+// let finalA = M(targetA);
+// let finalB = M(targetB);
+
+// Message($"The qubit A is in the {finalA} state.");
+// Message($"The qubit B is in the {finalB} state.");
+//
+// all of this code breaks the test /\
