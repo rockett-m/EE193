@@ -86,10 +86,9 @@ namespace MITRE.QSD.L02 {
         // open Microsoft.Quantum.Convert;
         // open Microsoft.Quantum.Diagnostics;
         // TODO
-        let arrayLength = Length(qubits);
-        mutable output = [0, size=arrayLength];
+        mutable output = [0, size=Length(qubits)];
 
-        for i in 0 .. arrayLength - 1 {
+        for i in 0 .. Length(qubits) - 1 {
             let measurement = M(qubits[i]);
             // result of measurement can be a 0 or 1 but add logic to get integer
             let resultAsInt = measurement == Zero ? 0 | 1;
@@ -151,37 +150,36 @@ namespace MITRE.QSD.L02 {
     /// values.
     operation E04_PhaseFlipOddTerms (register : Qubit[]) : Unit {
         // TODO
-        let registerLength = Length(register);
-        for i in 0 .. registerLength - 1 {
-            // detect odd indices
-            if (i % 2 == 1) {
-                // Z gate does a 180 degree phase flip
-                Z(register[i]);
-            }
-        }
+        Z(register[Length(register) - 1]);
     }
-
-
-
-    // operation E04_PhaseFlipOddTerms (register : Qubit[]) : Unit {
-    //     let registerLength = Length(register);
-    //     for i in 0 .. registerLength - 1 {
-
-    //         // get qubit length
-    //         let numQubits = Length(registerLength[i]);
-
-    //         // detect odd indices
-    //         if (i % 2 == 1) {
-    //             // Z gate does a 180 degree phase flip
-    //             Z(register[i]);
-
-    //             let measurement = M(register[i]);
-    //             let resultAsInt = measurement == Zero ? 0 | 1;
-    //             Message("The qubit number {i} before rotation is: {resultAsInt} ");
-    //         }
-    //     }
-    // }
-
-
-
 }
+
+
+//     operation E04_PhaseFlipOddTerms (register : Qubit[]) : Unit {
+// if there is a 1 in the last bit (odd), then flip the phase
+// +|000>
+// +|001> -> -|001>
+// +|010>
+// +|011> -> -|011>
+// +|100>
+// +|101> -> -|101>
+// +|110>
+// +|111> -> -|111>
+// make N be 2^registerLength = 2^3 = 8 or 2^8 = 64 for example
+
+// not needed - to flip phase of odd states we just apply Z gate to the last qubit
+// for i in 0 .. registerLength - 1 {
+//     // Message("$The qubit number {i}");
+//     // print out the qubit number before rotation
+//     // let measurement = M(register[i]);
+//     // Message("The qubit number {i} before rotation is: {measurement}");
+
+//     // detect odd indices
+//     if (i % 2 == 1) {
+
+//         Controlled Z(register[0..registerLength-2], register[registerLength-1]);
+//         // Z gate does a 180 degree phase flip
+//         // Z(register[i]);
+//         Z(register[registerLength - 1]);
+//     }
+// }
