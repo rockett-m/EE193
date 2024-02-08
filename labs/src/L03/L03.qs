@@ -9,6 +9,7 @@
 
 namespace MITRE.QSD.L03 {
 
+    open Microsoft.Quantum.Diagnostics;
     open MITRE.QSD.Tests.L03;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
@@ -174,7 +175,12 @@ namespace MITRE.QSD.L03 {
     /// arbitrary number of qubits.
     operation E04_PrepareGHZState (register : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        H(register[0]); // put the qubit in superposition
+
+        for i in 1 .. Length(register) - 1 {
+            // make the qubit states be all 0's and all 1's for the register
+            CNOT(register[0], register[i]); // entangle the qubits
+        }
     }
 
 
@@ -194,7 +200,17 @@ namespace MITRE.QSD.L03 {
     /// You will need to use the H, X, Z, and CNOT gates to achieve this.
     operation E05_CombineMultipleGates (register : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        // |register> = |0000>
+        X(register[1]); // flip the second qubit to |1>
+        // |register> = |0 1 00>
+        H(register[2]); // put the third qubit in superposition
+        // |register> = 1/√2(|01 0 0> + |01 1 0>)
+        CNOT(register[2], register[3]); // entangle the qubits
+        // |register> = 1/√2(|01 00 > + |01 11 >)
+        X(register[3]); // flip the 4th qubit to |1>
+        // |register> = 1/√2(|010 1 > - |0101>)
+        Z(register[3]); // phase flip the 4th qubit
+        // |register> = 1/√2(|0101> - |0110>)   
     }
 
 
@@ -219,7 +235,8 @@ namespace MITRE.QSD.L03 {
         // register[0].
 
         // TODO
-        fail "Not implemented.";
+        H(register[0]); // put the first qubit in superposition
+        Controlled H([register[0]], register[1]); // put the second qubit in superposition
     }
 
 
@@ -250,7 +267,13 @@ namespace MITRE.QSD.L03 {
         // |001> rather than |111>.
 
         // TODO
-        fail "Not implemented.";
+        ApplyToEach(H, register); // put the register in superposition
+
+        let control_state = [0, 0, 1]; // give target of 1
+        // control ones - target zero
+
+        Controlled X(register, target); // entangle the target with the register
+
     }
 
 
