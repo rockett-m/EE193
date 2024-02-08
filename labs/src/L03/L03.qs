@@ -119,12 +119,36 @@ namespace MITRE.QSD.L03 {
     /// # Remarks
     /// This investigates how to prepare the Bell states.
     operation E03_PrepareBellStates (registers : Qubit[][]) : Unit {
+        // TODO
+
         // Hint: you can start by putting all four registers into the state
         // 1/√2(|00> + |11>), then build the final state for each register 
         // from there.
 
-        // TODO
-        fail "Not implemented.";
+        //     |registers[0]> = 1/√2(|00> + |11>) // done
+        H(registers[0][0]);
+        CNOT(registers[0][0], registers[0][1]);
+
+       //     |registers[1]> = 1/√2(|00> - |11>) // done
+        X(registers[1][0]);  // flip the first qubit to |1>
+        H(registers[1][0]);  // put it in superposition
+        CNOT(registers[1][0], registers[1][1]);  // entangle the qubits
+
+        //     |registers[2]> = 1/√2(|01> + |10>) // done
+        X(registers[2][1]);  // flip the second qubit to |1>
+        H(registers[2][0]);  // put it in superposition
+        CNOT(registers[2][0], registers[2][1]);  // entangle the qubits
+
+        //     |registers[3]> = 1/√2(|01> - |10>) // done
+        X(registers[3][1]);  // flip the second qubit to |1>
+        H(registers[3][0]);  // put it in superposition
+        ApplyToEach(Z, registers[3]);  // apply Z gate to each qubit phase flip
+        CNOT(registers[3][0], registers[3][1]);  // entangle the qubits
+
+        //     |registers[0]> = 1/√2(|00> + |11>)
+        //     |registers[1]> = 1/√2(|00> - |11>)
+        //     |registers[2]> = 1/√2(|01> + |10>)
+        //     |registers[3]> = 1/√2(|01> - |10>)
     }
 
 
