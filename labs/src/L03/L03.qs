@@ -9,6 +9,7 @@
 
 namespace MITRE.QSD.L03 {
 
+    open MITRE.QSD.Tests.L03;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
@@ -41,7 +42,7 @@ namespace MITRE.QSD.L03 {
         // Hint: you can do this with a single statement, using one gate.
 
         // TODO
-        fail "Not implemented.";
+        SWAP(qubitA, qubitB);
     }
 
 
@@ -79,7 +80,18 @@ namespace MITRE.QSD.L03 {
     /// This investigates the combination of arrays and multi-qubit gates.
     operation E02_ReverseRegister (register : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        let num_qubits = Length(register);
+        // clean midpoint either way now
+        if (num_qubits % 2 == 1) { let num_qubits = num_qubits - 1; }
+        // so we can modify the register values
+        mutable register = register;
+        // index up to halfway (leave middle alone odd since no need to swap)
+        let iter_bounds = (num_qubits / 2) - 1;
+        for left in 0 .. iter_bounds {
+            let right = num_qubits - 1 - left;
+            // swap the qubits
+            SWAP(register[left], register[right]);
+        }
     }
 
 
