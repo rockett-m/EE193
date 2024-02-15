@@ -6,16 +6,10 @@
             "type": "python",
             "request": "launch",
             "module": "pytest",
-            "args": ["${workspaceFolder}/tests/"],
+            "args": ["${workspaceFolder}/tests/test_L03.py"],
             "justMyCode": false,
             "cwd": "${workspaceFolder}"
         },
-        {
-            "name": "Q#: Run Tests",
-            "type": "qsharp",
-            "request": "launch",
-            "program": "${workspaceFolder}/tests/L01/Tests.qs",
-        }
     ]
 }
 

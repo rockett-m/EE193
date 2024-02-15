@@ -14,6 +14,7 @@ namespace MITRE.QSD.L03 {
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Diagnostics;
 
 
     /// # Summary
@@ -269,11 +270,21 @@ namespace MITRE.QSD.L03 {
         // TODO
         ApplyToEach(H, register); // put the register in superposition
 
-        let control_state = [0, 0, 1]; // give target of 1
-        // control ones - target zero
+        within { // apply the controlled X gate
+            // here we make the 0th and 1st qubits one (from state of zero)
+            // so that all qubits go from |001> to |111> temporarily so X can be applied
+            // to the target qubit to be == 1
+            X(register[0]);
+            X(register[1]);
+        } apply {
+            Controlled X(register, target); // entangle the target with the register
+        }
+        // DumpMachine(); // print the state of the qubits
 
-        Controlled X(register, target); // entangle the target with the register
-
+        // zero control for leftmost Qubit
+        // zero control for middle qubit 
+        // one control for rightmost qubit
+        // entangle the target with the register
     }
 
 
@@ -301,7 +312,15 @@ namespace MITRE.QSD.L03 {
         // using any extra qubits, but this is not necessary.
 
         // TODO
-        fail "Not implemented.";
+        // ApplyToEach(H, register); // put the register in superposition
+        H(register[0]); // put the first qubit in superposition
+        Controlled H([register[0]], register[1]); // put the second qubit in superposition
+        // ctrls, target
+        CCNOT(register[0], register[1], register[2]); // entangle the qubits
+
+        X(register[1]);
+        Controlled Z([register[0]], register[1]);
+        X(register[1]);
     }
 
 
