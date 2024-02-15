@@ -318,9 +318,15 @@ namespace MITRE.QSD.L03 {
         // ctrls, target
         CCNOT(register[0], register[1], register[2]); // entangle the qubits
 
-        X(register[1]);
-        Controlled Z([register[0]], register[1]);
-        X(register[1]);
+        within { // within to apply temporary X gate to the qubit1
+            // apply Z gate to target, then undo X gate on qubit1 after
+            X(register[1]);
+        } apply {
+            Controlled Z([register[0]], register[1]);
+        }
+        // X(register[1]);
+        // Controlled Z([register[0]], register[1]);
+        // X(register[1]);
     }
 
 

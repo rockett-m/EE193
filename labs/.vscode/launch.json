@@ -6,7 +6,26 @@
             "type": "python",
             "request": "launch",
             "module": "pytest",
+            // "args": ["${workspaceFolder}/tests"],
             "args": ["${workspaceFolder}/tests/test_L03.py"],
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}"
+        },
+        // {
+        //     "name": "Q#: Run Tests",
+        //     // "type": "qsharp",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/tests/test_L03.py",
+        //     // "program": "${workspaceFolder}/src/L03/L03Tests.qs",
+        //     // "program": "${workspaceFolder}/tests/L03/",
+        // }
+        {
+            "name": "Python: Pytest All",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": ["${workspaceFolder}/tests/"],
             "justMyCode": false,
             "cwd": "${workspaceFolder}"
         },
