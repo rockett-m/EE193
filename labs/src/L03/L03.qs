@@ -9,6 +9,7 @@
 
 namespace MITRE.QSD.L03 {
 
+    open MITRE.QSD.QSharpReference;
     open Microsoft.Quantum.Diagnostics;
     open MITRE.QSD.Tests.L03;
     open Microsoft.Quantum.Canon;
@@ -348,7 +349,12 @@ namespace MITRE.QSD.L03 {
     /// A two-qubit register in the |00> state.
     operation C01_ThreeTermsEqualAmp (register : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        // DumpMachine();
+        let angle = ArcCos(1.0 / Sqrt(3.0));
+        Ry(angle * 2.0, register[0]); // rotate the first qubit by 2π/3
+        Controlled H([register[0]], register[1]); // put the second qubit in superposition
+        X(register[0]);
+        // DumpMachine();
     }
 
 
@@ -366,7 +372,13 @@ namespace MITRE.QSD.L03 {
     /// A three-qubit register in the |000> state.
     operation C02_PrepareWState (register : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        Ry((ArcCos(1.0 / Sqrt(3.0)) * 2.0), register[0]); // rotate the first qubit by 2π/3
+        Controlled H([register[0]], register[1]); // put the second qubit in superposition
+        CNOT(register[0], register[2]); // entangle the qubits
+        CNOT(register[1], register[2]); // entangle the qubits
+        X(register[0]);
+        // DumpMachine();
+        // pytest ./tests/test_L03.py::test_L03C02
     }
 
 
@@ -379,14 +391,14 @@ namespace MITRE.QSD.L03 {
     ///
     ///  Index  |  Value
     /// ------- | -------
-    ///    0    |    1
-    ///    1    |   1/√2
-    ///    2    |    0
-    ///    3    |  -1/√2
-    ///    4    |   -1
-    ///    5    |  -1/√2
-    ///    6    |    0
-    ///    7    |   1/√2
+    ///    0    |    1    | 000
+    ///    1    |   1/√2  | 001
+    ///    2    |    0    | 010
+    ///    3    |  -1/√2  | 011
+    ///    4    |   -1    | 100
+    ///    5    |  -1/√2  | 101
+    ///    6    |    0    | 110
+    ///    7    |   1/√2  | 111
     ///
     /// Note that these samples are not normalized; if they were used directly
     /// as amplitudes, they would result in a total probability greater than 1.
@@ -410,7 +422,25 @@ namespace MITRE.QSD.L03 {
     /// this is a good first hint.
     operation C03_EncodeCosine (register : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        ApplyToEach(H, register); // put the register in superposition
+
+        let angle = PI() / 4.0;
+
+        // CCNOT(register[0], register[1], register[2]); // entangle the qubits
+        CNOT(register[0], register[1]); // entangle the qubits
+        CNOT(register[1], register[2]); // entangle the qubits
+        Ry(angle, register[2]); // rotate the first qubit by π/4
+
+
+        // phase flip on states 011 and 100 and 101 (3, 4, and 5 - 0-indexed)
+        
+        // X(register[0]);
+        // evens (bit 0 == 0) have 1, 0, -1, 0 amplitude
+        // bit 1 or bit 2 == 1 when bit 0 == 0
+        DumpMachine();
+        // odds (bit 0 == 1) have 1/√2, -1/√2, -1/√2, 1/√2 amplitude
+
+
     }
 
 
