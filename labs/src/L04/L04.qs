@@ -12,7 +12,7 @@ namespace MITRE.QSD.L04 {
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Intrinsic;
-
+    open Microsoft.Quantum.Diagnostics;
 
     /// # Summary
     /// In this exercise, you will take on the role of the "sender" in the
@@ -34,7 +34,19 @@ namespace MITRE.QSD.L04 {
     /// 1/√2(|00> + |11>).
     operation E01_SuperdenseEncode (buffer : Bool[], pairA : Qubit) : Unit {
         // TODO
-        fail "Not implemented.";
+        // H, X already applied (default for engtangled qubits) |phi+> state
+        if (buffer[0] == false) and (buffer[1] == false) {
+            // | phi +> state
+        } elif (buffer[0] == false) and (buffer[1] == true) {
+            // | psi +> state
+            X(pairA);
+        } elif (buffer[0] == true) and (buffer[1] == false) {
+            // | phi -> state
+            Z(pairA);
+        } elif (buffer[0] == true) and (buffer[1] == true) {
+            // | psi -> state
+            X(pairA); Z(pairA);
+        }
     }
 
 
@@ -60,7 +72,12 @@ namespace MITRE.QSD.L04 {
     /// entangled pair. Use false for 0 and true for 1.
     operation E02_SuperdenseDecode (pairA : Qubit, pairB : Qubit) : Bool[] {
         // TODO
-        fail "Not implemented.";
+        CNOT(pairA, pairB); H(pairA);
+        // assign measurements Zero to false and One to true
+        let measurementA = M(pairA) == Zero ? false | true;
+        let measurementB = M(pairB) == Zero ? false | true;
+        // picks 1 of 4 states (FF, FT, TF, TT) and returns the corresponding bits
+        return [measurementA, measurementB]; 
     }
 
 
