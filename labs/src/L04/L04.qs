@@ -35,15 +35,16 @@ namespace MITRE.QSD.L04 {
     operation E01_SuperdenseEncode (buffer : Bool[], pairA : Qubit) : Unit {
         // TODO
         // H, X already applied (default for engtangled qubits) |phi+> state
-        if (buffer[0] == false) and (buffer[1] == false) {
+        // not is the same as checking == false
+        if (not buffer[0] and not buffer[1]) {
             // | phi +> state
-        } elif (buffer[0] == false) and (buffer[1] == true) {
+        } elif (not buffer[0] and buffer[1]) {
             // | psi +> state
             X(pairA);
-        } elif (buffer[0] == true) and (buffer[1] == false) {
+        } elif (buffer[0] and not buffer[1]) {
             // | phi -> state
             Z(pairA);
-        } elif (buffer[0] == true) and (buffer[1] == true) {
+        } elif (buffer[0] and buffer[1]) {
             // | psi -> state
             X(pairA); Z(pairA);
         }
@@ -118,7 +119,18 @@ namespace MITRE.QSD.L04 {
         qubit: Qubit
     ) : Bool {
         // TODO
-        fail "Not implemented.";
+        // we simulate what happens when aSecret and or aPublic are true
+        // they act as control bits for the X and H gates
+        // if they are true then we modify the qubit with the corresponding gate
+        if (aSecret) {
+            X(qubit);
+        }
+        if (aPublic) {
+            H(qubit);
+        }
+        // return true if secret but can be used, false if not
+        // if aPublic and bPublic are the same, return true, else false
+        return (aPublic == bPublic) ? true | false;        
     }
 
 
@@ -148,7 +160,14 @@ namespace MITRE.QSD.L04 {
         qubit: Qubit
     ) : (Bool, Bool) {
         // TODO
-        fail "Not implemented.";
+        // aPublic is used as a control bit for the H gate so apply if true
+        if (aPublic) {
+            H(qubit);
+        }
+        let secret = M(qubit) == One ? true | false;
+        let usable = (aPublic == bPublic) ? true | false;
+
+        return (secret, usable);
     }
 
 
@@ -181,7 +200,12 @@ namespace MITRE.QSD.L04 {
         // logical qubit back into the original three unentangled qubits.
 
         // TODO
-        fail "Not implemented.";
+        // goal is to have majority consensus on the state of the qubits
+        // we assume only 1 qubit will be flipped if any (so 2/3 or 3/3 qubits indicate state)
+
+        // entangle the 3 qubits
+        CNOT(original, spares[0]);
+        CNOT(original, spares[1]);
     }
 
 
@@ -214,7 +238,25 @@ namespace MITRE.QSD.L04 {
         // back to the |0> state!
 
         // TODO
-        fail "Not implemented.";
+        // allocate ancilla qubits for the parity checks
+        use ancilla1 = Qubit();
+        use ancilla2 = Qubit();
+
+        // entangle the ancilla qubits with the register qubits
+        CNOT(register[0], ancilla1);
+        CNOT(register[1], ancilla1);
+
+        CNOT(register[0], ancilla2);
+        CNOT(register[2], ancilla2);
+
+        // syndrome measurement
+        let parityCheck1 = M(ancilla1) == Zero ? Zero | One;
+        let parityCheck2 = M(ancilla2) == Zero ? Zero | One;
+
+        // reset ancilla qubits
+        Reset(ancilla1); Reset(ancilla2);
+
+        return [parityCheck1, parityCheck2];
     }
 
 
@@ -247,7 +289,18 @@ namespace MITRE.QSD.L04 {
         // of the qubit you identified as broken to help with debugging.
 
         // TODO
-        fail "Not implemented.";
+        if (syndromeMeasurement[0] == Zero and syndromeMeasurement[1] == Zero) {
+            // no error
+        } elif (syndromeMeasurement[0] == Zero and syndromeMeasurement[1] == One) {
+            // qubit 2 bit flip error
+            X(register[2]);
+        } elif (syndromeMeasurement[0] == One and syndromeMeasurement[1] == Zero) {
+            // qubit 1 bit flip error
+            X(register[1]);
+        } elif (syndromeMeasurement[0] == One and syndromeMeasurement[1] == One) {
+            // qubit 0 bit flip error
+            X(register[0]);
+        }
     }
 
 
