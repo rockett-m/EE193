@@ -9,11 +9,14 @@
 
 namespace MITRE.QSD.L04 {
 
-    open MITRE.QSD.Tests.L03;
+    open Microsoft.Quantum.Arrays;
+    open MITRE.QSD.Tests.L04;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Math;
+
 
     /// # Summary
     /// In this exercise, you will take on the role of the "sender" in the
@@ -361,30 +364,14 @@ namespace MITRE.QSD.L04 {
         // TODO
         use qubits =  Qubit[6];
 
-        for i in [0,2,4,6] {
-            CNOT(register[i], qubits[0]);
-        }
-        for i in [1,2,5,6] {
-            CNOT(register[i], qubits[1]);
-        }
-        for i in 3..6 {
-            CNOT(register[i], qubits[2]);
-        }
-        for i in 3..5 {
-            H(qubits[i]);
-        }
-        for i in [0,2,4,6] {
-            CNOT(qubits[3], register[i]);
-        }
-        for i in [1,2,5,6] {
-            CNOT(qubits[4], register[i]);
-        }
-        for i in 3..6 {
-            CNOT(qubits[5], register[i]);
-        }
-        for i in 3..5 {
-            H(qubits[i]);
-        }
+        for i in [0,2,4,6] { CNOT(register[i], qubits[0]); }
+        for i in [1,2,5,6] { CNOT(register[i], qubits[1]); }
+        for i in 3..6 {      CNOT(register[i], qubits[2]); }
+        for i in 3..5 {      H(qubits[i]); }
+        for i in [0,2,4,6] { CNOT(qubits[3], register[i]); }
+        for i in [1,2,5,6] { CNOT(qubits[4], register[i]); }
+        for i in 3..6 {      CNOT(qubits[5], register[i]); }
+        for i in 3..5 {      H(qubits[i]); }
 
         let syndrome = [M(qubits[2]) == Zero ? Zero | One, M(qubits[1]) == Zero ? Zero | One, M(qubits[0]) == Zero ? Zero | One];
         ResetAll(qubits);
@@ -410,7 +397,20 @@ namespace MITRE.QSD.L04 {
     /// produces.
     operation C03_SteanePhaseSyndrome (register : Qubit[]) : Result[] {
         // TODO
-        fail "Not implemented.";
+        use qubits =  Qubit[6];
+
+        for i in [0,2,4,6] { CNOT(register[i], qubits[0]); }
+        for i in [1,2,5,6] { CNOT(register[i], qubits[1]); }
+        for i in 3..6 {      CNOT(register[i], qubits[2]); }
+        for i in 3..5 {      H(qubits[i]); }
+        for i in [0,2,4,6] { CNOT(qubits[3], register[i]); }
+        for i in [1,2,5,6] { CNOT(qubits[4], register[i]); }
+        for i in 3..6 {      CNOT(qubits[5], register[i]); }
+        for i in 3..5 {      H(qubits[i]); }
+
+        let syndrome = [M(qubits[5]) == Zero ? Zero | One, M(qubits[4]) == Zero ? Zero | One, M(qubits[3]) == Zero ? Zero | One];
+        ResetAll(qubits);
+        return syndrome;
     }
 
 
@@ -451,7 +451,13 @@ namespace MITRE.QSD.L04 {
     /// of regular old classical math and logic.
     function C04_SyndromeToIndex (syndrome : Result[]) : Int {
         // TODO
-        fail "Not implemented.";
+        mutable syndrome_decimal = 0;
+        for i in 0..2 {
+            let syn_measure = syndrome[2-i] == Zero ? 0 | 1;
+            set syndrome_decimal += (syn_measure * (2^i));
+        }
+        // also works for 000 = -1 // qubits indexed 0..6
+        return syndrome_decimal-1; 
     }
 
 
