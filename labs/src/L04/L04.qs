@@ -9,6 +9,7 @@
 
 namespace MITRE.QSD.L04 {
 
+    open MITRE.QSD.Tests.L03;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Intrinsic;
@@ -331,7 +332,12 @@ namespace MITRE.QSD.L04 {
         spares : Qubit[]
     ) : Unit is Adj {
         // TODO
-        fail "Not implemented.";
+        ApplyToEachA(H, spares[3..5]);
+        // the _ means substitute in each from beyond comma during loop
+        ApplyToEachA(CNOT(original, _), spares[0..1]);
+        ApplyToEachA(CNOT(spares[5], _), [original, spares[0], spares[2]]);
+        ApplyToEachA(CNOT(spares[4], _), [original, spares[1], spares[2]]);
+        ApplyToEachA(CNOT(spares[3], _), spares[0..2]);
     }
 
 
@@ -353,7 +359,36 @@ namespace MITRE.QSD.L04 {
     /// produces.
     operation C02_SteaneBitSyndrome (register : Qubit[]) : Result[] {
         // TODO
-        fail "Not implemented.";
+        use qubits =  Qubit[6];
+
+        for i in [0,2,4,6] {
+            CNOT(register[i], qubits[0]);
+        }
+        for i in [1,2,5,6] {
+            CNOT(register[i], qubits[1]);
+        }
+        for i in 3..6 {
+            CNOT(register[i], qubits[2]);
+        }
+        for i in 3..5 {
+            H(qubits[i]);
+        }
+        for i in [0,2,4,6] {
+            CNOT(qubits[3], register[i]);
+        }
+        for i in [1,2,5,6] {
+            CNOT(qubits[4], register[i]);
+        }
+        for i in 3..6 {
+            CNOT(qubits[5], register[i]);
+        }
+        for i in 3..5 {
+            H(qubits[i]);
+        }
+
+        let syndrome = [M(qubits[2]) == Zero ? Zero | One, M(qubits[1]) == Zero ? Zero | One, M(qubits[0]) == Zero ? Zero | One];
+        ResetAll(qubits);
+        return syndrome;
     }
 
 

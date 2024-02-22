@@ -389,15 +389,15 @@ namespace MITRE.QSD.L03 {
     /// starting with 0 and ending with 7π/4. The cosine wave samples are laid
     /// out in the table below:
     ///
-    ///  Index  |  Value
+    ///  Index  |  Value - aka amplitude normalized
     /// ------- | -------
     ///    0    |    1    | 000
     ///    1    |   1/√2  | 001
-    ///    2    |    0    | 010
+    ///    2    |    0    | 010 // 0 amplitude - shouldn't even be present
     ///    3    |  -1/√2  | 011
     ///    4    |   -1    | 100
     ///    5    |  -1/√2  | 101
-    ///    6    |    0    | 110
+    ///    6    |    0    | 110 // 0 amplitude - shouldn't even be present
     ///    7    |   1/√2  | 111
     ///
     /// Note that these samples are not normalized; if they were used directly
@@ -439,6 +439,8 @@ namespace MITRE.QSD.L03 {
         // bit 1 or bit 2 == 1 when bit 0 == 0
         DumpMachine();
         // odds (bit 0 == 1) have 1/√2, -1/√2, -1/√2, 1/√2 amplitude
+
+        // write Dirac notation for desired state (normalized)
 
 
     }
