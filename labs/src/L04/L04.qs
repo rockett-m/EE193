@@ -335,12 +335,11 @@ namespace MITRE.QSD.L04 {
         spares : Qubit[]
     ) : Unit is Adj {
         // TODO
-        ApplyToEachA(H, spares[3..5]);
-        // the _ means substitute in each from beyond comma during loop
-        ApplyToEachA(CNOT(original, _), spares[0..1]);
-        ApplyToEachA(CNOT(spares[5], _), [original, spares[0], spares[2]]);
-        ApplyToEachA(CNOT(spares[4], _), [original, spares[1], spares[2]]);
-        ApplyToEachA(CNOT(spares[3], _), spares[0..2]);
+        for i in 3..5 { H(spares[i]); }
+        for i in 0..1 { CNOT(original, spares[i]); }
+        for item in [original, spares[0], spares[2]] { CNOT(spares[5], item); } 
+        for item in [original, spares[1], spares[2]] { CNOT(spares[4], item); } 
+        for item in spares[0..2] { CNOT(spares[3], item); }
     }
 
 
@@ -456,7 +455,7 @@ namespace MITRE.QSD.L04 {
             let syn_measure = syndrome[2-i] == Zero ? 0 | 1;
             set syndrome_decimal += (syn_measure * (2^i));
         }
-        // also works for 000 = -1 // qubits indexed 0..6
+        // also works for syndrome 000 = -1 // qubits indexed 0..6
         return syndrome_decimal-1; 
     }
 
@@ -484,6 +483,14 @@ namespace MITRE.QSD.L04 {
     /// immediately finish!
     operation C05_SteaneCorrection (register : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        let bit_index =   C04_SyndromeToIndex(C02_SteaneBitSyndrome(register));
+        let phase_index = C04_SyndromeToIndex(C03_SteanePhaseSyndrome(register));
+
+        if bit_index != -1 {
+            X(register[bit_index]);
+        }
+        if phase_index != -1 {
+            Z(register[phase_index]);
+        }
     }
 }
