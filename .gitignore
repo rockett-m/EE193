@@ -1,6 +1,10 @@
+*.JPG
+*.png
 .DS_Store
 __pycache__
 *.pyc
 Lab Solutions/
 *~$*
 *\"*
+Exam1/
+grade_calc_ee193.xlsx

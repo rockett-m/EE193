@@ -6,6 +6,7 @@
 
 namespace MITRE.QSD.L05 {
 
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Intrinsic;
@@ -75,7 +76,22 @@ namespace MITRE.QSD.L05 {
         // times will have the same effect as only flipping it once, etc.
 
         // TODO
-        fail "Not implemented.";
+        DumpMachine();
+        for i in 0 .. Length(input) - 1 { 
+            // iterate through the states of the qubit
+
+            let M = Measure([PauliZ], [input[i]]);
+            if (M == Zero) {
+                // print the index and the value of the qubit
+                Message("$i: 0");
+            } else 
+            {
+                // print the index and the value of the qubit
+                Message("$i: 1");
+                Z(input[i]);
+            }
+        }
+        DumpMachine();
     }
 
 
