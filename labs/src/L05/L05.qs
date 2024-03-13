@@ -176,72 +176,23 @@ namespace MITRE.QSD.L05 {
         ApplyToEach(H, input);
         X(target);
 
-        // Run the oracle
-        // E01_PhaseFlipOnOdd1s(input, target);
-
-        // 3 input qubits then 3 controlled Z gates
-        // for i in 0..Length(input) - 1 {
-        //     Controlled Z([input[i]], target);
-        // }
-
-        // AlwaysZero(input, target);
-        // AlwaysZero(input, target);
-        // E01_PhaseFlipOnOdd1s(input, target);
-        // E02_PhaseFlipOnOddParity(0, 1, input, target);
-
-        for i in 0..Length(input) - 1 {
-            E02_PhaseFlipOnOddParity(i, (i + 1) % Length(input), input, target);
-            // Controlled Z([input[i]], target);
-        }
-
-        // E01_PhaseFlipOnOdd1s(input, target);
-        // E02_PhaseFlipOnOddParity(0, 1, input, target);
-
-        // for i in 0..Length(input) - 1 {
-        //     // AlwaysOne([input[i]], target);
-            
-        //     let first_index = i;
-        //     let second_index = i + 1 % Length(input);
-        //     E02_PhaseFlipOnOddParity(first_index, second_index, input, target);
-
-        //     // Controlled Z([input[i]], target);
-        // }
-
-
-
-        // Controlled Z([input[0]], target);
-        // Controlled Z([input[1]], target);
-        // ApplyToEach(oracle(_, target), input);
-
-        DumpMachine();
+        // Run the oracle (black box function that we are trying to determine 
+        // if it is constant or balanced)
+        oracle(input, target);
 
         // Put the input register back in the |0...0> state
         ApplyToEach(H, input);
 
-        DumpMachine();
-        
-        // measure all qubits in the input register
-        // let result = MeasureAllZ(input);
-        // ResetAll(input);
-        // return result == Zero;
-
-
+        mutable total = 0;
         // Measure the input register (all zeros - function is constant, otherwise balanced)
         for i in 0..Length(input) - 1 {
-            let result = M(input[i]);
-            // function is balanced if this occurs
-            if (result == One) { 
-                // reset qubit
-                Reset(input[i]);
-                return false;
-            } else {
-                // reset qubit if it is not balanced
-                Reset(input[i]);
-            }
+            // function is balanced if the input register is not all zeros
+            if (M(input[i]) == One) {  set total = total + 1; }
         }
         // return true if the function is constant (balanced would not make it this far)
-        // ResetAll(input);
-        return true;
+        ResetAll(input); Reset(target);
+
+        return (total == 0) ? true | false;
     }
 
 
