@@ -6,6 +6,7 @@
 
 namespace MITRE.QSD.L05 {
 
+    open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
@@ -76,22 +77,10 @@ namespace MITRE.QSD.L05 {
         // times will have the same effect as only flipping it once, etc.
 
         // TODO
-        DumpMachine();
-        for i in 0 .. Length(input) - 1 { 
-            // iterate through the states of the qubit
-
-            let M = Measure([PauliZ], [input[i]]);
-            if (M == Zero) {
-                // print the index and the value of the qubit
-                Message("$i: 0");
-            } else 
-            {
-                // print the index and the value of the qubit
-                Message("$i: 1");
-                Z(input[i]);
-            }
+        // target will get phase flip if 1 or 3 of the qubits are == 1
+        for i in 0..Length(input) - 1 {
+            Controlled Z([input[i]], target);
         }
-        DumpMachine();
     }
 
 
@@ -130,7 +119,13 @@ namespace MITRE.QSD.L05 {
         target : Qubit
     ) : Unit {
         // TODO
-        fail "Not implemented.";
+        X(input[firstIndex]); // 01 -> 11 will activate the control
+        Controlled Z([input[firstIndex], input[secondIndex]], target);
+        X(input[firstIndex]); // 11 -> 01 undo
+
+        X(input[secondIndex]); // 10 -> 11 will activate the control
+        Controlled Z([input[firstIndex], input[secondIndex]], target);
+        X(input[secondIndex]); // 11 -> 10 undo
     }
 
 
@@ -174,7 +169,79 @@ namespace MITRE.QSD.L05 {
         // before running the oracle!
 
         // TODO
-        fail "Not implemented.";
+        DumpMachine();
+        use (input, target) = (Qubit[inputLength], Qubit());
+
+        // Setup: Put the input register in the |+...+> state, make the target qubit |1>
+        ApplyToEach(H, input);
+        X(target);
+
+        // Run the oracle
+        // E01_PhaseFlipOnOdd1s(input, target);
+
+        // 3 input qubits then 3 controlled Z gates
+        // for i in 0..Length(input) - 1 {
+        //     Controlled Z([input[i]], target);
+        // }
+
+        // AlwaysZero(input, target);
+        // AlwaysZero(input, target);
+        // E01_PhaseFlipOnOdd1s(input, target);
+        // E02_PhaseFlipOnOddParity(0, 1, input, target);
+
+        for i in 0..Length(input) - 1 {
+            E02_PhaseFlipOnOddParity(i, (i + 1) % Length(input), input, target);
+            // Controlled Z([input[i]], target);
+        }
+
+        // E01_PhaseFlipOnOdd1s(input, target);
+        // E02_PhaseFlipOnOddParity(0, 1, input, target);
+
+        // for i in 0..Length(input) - 1 {
+        //     // AlwaysOne([input[i]], target);
+            
+        //     let first_index = i;
+        //     let second_index = i + 1 % Length(input);
+        //     E02_PhaseFlipOnOddParity(first_index, second_index, input, target);
+
+        //     // Controlled Z([input[i]], target);
+        // }
+
+
+
+        // Controlled Z([input[0]], target);
+        // Controlled Z([input[1]], target);
+        // ApplyToEach(oracle(_, target), input);
+
+        DumpMachine();
+
+        // Put the input register back in the |0...0> state
+        ApplyToEach(H, input);
+
+        DumpMachine();
+        
+        // measure all qubits in the input register
+        // let result = MeasureAllZ(input);
+        // ResetAll(input);
+        // return result == Zero;
+
+
+        // Measure the input register (all zeros - function is constant, otherwise balanced)
+        for i in 0..Length(input) - 1 {
+            let result = M(input[i]);
+            // function is balanced if this occurs
+            if (result == One) { 
+                // reset qubit
+                Reset(input[i]);
+                return false;
+            } else {
+                // reset qubit if it is not balanced
+                Reset(input[i]);
+            }
+        }
+        // return true if the function is constant (balanced would not make it this far)
+        // ResetAll(input);
+        return true;
     }
 
 
