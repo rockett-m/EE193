@@ -224,7 +224,13 @@ namespace MITRE.QSD.L05 {
         input : Qubit[],
         target : Qubit
     ) : Unit {
-        fail "Not implemented.";
+        // target will get phase flip if the bitwise (mod-2) dot product of the register value with the bitstring 's' is 1
+        for idx in 0..Length(input) - 1 {
+            // if the bitstring is 1, then we will phase flip the target qubit
+            if (s[idx]) {
+                Controlled Z([input[idx]], target);
+            }
+        }
     }
 
 
