@@ -187,7 +187,7 @@ namespace MITRE.QSD.L05 {
         // Measure the input register (all zeros - function is constant, otherwise balanced)
         for i in 0..Length(input) - 1 {
             // function is balanced if the input register is not all zeros
-            if (M(input[i]) == One) {  set total = total + 1; }
+            if (M(input[i]) == One) { set total = total + 1; }
         }
         // return true if the function is constant (balanced would not make it this far)
         ResetAll(input); Reset(target);
@@ -258,6 +258,29 @@ namespace MITRE.QSD.L05 {
         inputLength : Int,
         oracle : ((Qubit[], Qubit) => Unit)
     ) : Bool[] {
-        fail "Not implemented.";
+        // qubit register and target qubit
+        use qubits = Qubit[inputLength];
+        use target = Qubit();
+
+        // initialize the qubit register to the |+...+> state
+        ApplyToEach(H, qubits);
+
+        // initialize the target qubit to the |1> state
+        X(target);
+
+        // Run the oracle
+        oracle(qubits, target);
+
+        // initialize the qubit register to the |+...+> state
+        ApplyToEach(H, qubits);
+
+        // measure the results after the oracle has been applied
+        mutable results_after_oracle = MeasureEachZ(qubits);
+
+        // reset qubits and target qubit
+        ResetAll(qubits); Reset(target);
+
+        // convert the results to a Boolean array
+        return ResultArrayAsBoolArray(results_after_oracle);
     }
 }
