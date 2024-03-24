@@ -9,10 +9,12 @@
 
 namespace MITRE.QSD.L06 {
 
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.Arrays;
 
 
     /// # Summary
@@ -73,7 +75,29 @@ namespace MITRE.QSD.L06 {
         input : Bool[]
     ) : Bool[] {
         // TODO
-        fail "Not implemented.";
+        // Create a qubit register and put it in the same state as the input
+        use input_qubits = Qubit[Length(input)];
+        for i in 0 .. Length(input) - 1 {
+            // If the input bit is true, apply an X gate to make it |1>
+            if input[i] { X(input_qubits[i]); }
+        }
+
+        // Run the operation with this input
+        use output_qubits = Qubit[Length(input)];
+        op(input_qubits, output_qubits);
+
+        // Measure the output register
+        mutable measured_output = [false, size=Length(input)];
+
+        for i in 0 .. Length(input) - 1 {
+            let measurement = M(output_qubits[i]);
+            // If the output is |1>, set the corresponding bit to true
+            set measured_output w/= i <- measurement == One;
+        }
+
+        ResetAll(input_qubits); ResetAll(output_qubits);
+
+        return measured_output;
     }
 
 
