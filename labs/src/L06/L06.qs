@@ -9,6 +9,7 @@
 
 namespace MITRE.QSD.L06 {
 
+    open MITRE.QSD.L01;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
@@ -126,7 +127,25 @@ namespace MITRE.QSD.L06 {
         inputSize : Int
     ) : Bool[] {
         // TODO
-        fail "Not implemented.";
+        use input_qubits = Qubit[inputSize];
+        use output_qubits = Qubit[inputSize];
+
+        ApplyToEach(H, input_qubits);
+
+        op(input_qubits, output_qubits);
+
+        ApplyToEach(H, input_qubits);
+
+        mutable results = [false, size=inputSize];
+
+        for i in 0 .. inputSize - 1 {
+            let measurement = M(input_qubits[i]);
+            set results w/= i <- measurement == One;
+        }
+
+        ResetAll(input_qubits); ResetAll(output_qubits);
+
+        return results;
     }
 
 
