@@ -180,7 +180,17 @@ namespace MITRE.QSD.L06 {
     /// that result, then you've implemented it properly.
     operation C01_RightShiftBy1 (input : Qubit[], output : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        use output_qubits = Qubit[Length(input)];
+        // first qubit is 0 and should remain 0
+        for i in 1 .. Length(input) - 1 {
+            CNOT(input[i-1], output[i]);
+        }
+        mutable result = [false, size=Length(input)];
+        for i in 0 .. Length(input) - 1 {
+            let measurement = M(output[i]);
+            set result w/= i <- measurement == One;
+        }
+        ResetAll(output);
     }
 
 
