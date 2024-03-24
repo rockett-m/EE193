@@ -9,7 +9,7 @@
 
 namespace MITRE.QSD.L06 {
 
-    open MITRE.QSD.L01;
+    // open MITRE.QSD.L01;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
@@ -34,6 +34,8 @@ namespace MITRE.QSD.L06 {
     /// operation, it will be in the state of the input, left-shifted by 1 bit.
     operation LeftShiftBy1 (input : Qubit[], output : Qubit[]) : Unit {
         // Start at input[1]
+        ResetAll(output);
+        // Reset(output[Length(output) - 1]);
         for inputIndex in 1 .. Length(input) - 1 {
             // Copy input[i] to output[i-1]
             let outputIndex = inputIndex - 1;
@@ -177,6 +179,8 @@ namespace MITRE.QSD.L06 {
     /// that result, then you've implemented it properly.
     operation C01_RightShiftBy1 (input : Qubit[], output : Qubit[]) : Unit {
         // TODO
+        ResetAll(output);
+        // Reset(output[0]);
         use output_qubits = Qubit[Length(input)];
         // first qubit is 0 and should remain 0
         for i in 1 .. Length(input) - 1 {
@@ -187,7 +191,6 @@ namespace MITRE.QSD.L06 {
             // If the measurement is |1>, set the corresponding bit to true
             set result w/= i <- M(output[i]) == One;
         }
-        ResetAll(output);
     }
 
 
@@ -222,79 +225,153 @@ namespace MITRE.QSD.L06 {
     /// variants of the X gate (CNOT and CCNOT).
     operation C02_SimonBB (input : Qubit[], output : Qubit[]) : Unit {
         // TODO
-        // odd number of 1s in the input: then then odd number of 1s in the output
-        // even number of 1s in the input: then even number of 1s in the output
+
+        // DumpMachine();
+        //  Input | Output
+        //   000  |  101
+        ApplyToEach(X, input[0..2]); // attempt to get input as |111>
+        use ancilla = Qubit();
+        Controlled X(input[0..2], ancilla); // if input is |111>, ancilla will be 1
+        if M(ancilla) == One {
+            // LeftShiftBy1(input, output); // |111> -> |110>
+            // LeftShiftBy1(output, output); // |110> -> |100>
+            // X(output[2]);
+            X(output[2]); X(output[0]); //works also
+        }
+        Reset(ancilla);
+        ApplyToEach(X, input[0..2]);
 
         //  Input | Output
-        // ---------------
-        //   100  |  000 // dont change anything (outputs)
-        //   010  |  000 // dont change anything
-        // when there is only one 1 in the input in qubit position 0 or 1, the output is 000
+        //   001  |  010
+        within { X(input[0]); X(input[1]); }
+        apply {
+            use ancilla = Qubit();
+            // we know first 2 qubits are 1 due to the within condition
+            // if the last qubit is 1, then ancilla will be 1, and trigger our logic
+            Controlled X(input[0..2], ancilla);
+            // use controls of ancilla and input[2]
+            if M(ancilla) == One {
+                // |111> -> |110>; |110> -> |100>; |100> -> |010>
+                // LeftShiftBy1(input, output);
+                // LeftShiftBy1(output, output);
+                // C01_RightShiftBy1(output, output);
+                X(output[1]);
+            }
+            Reset(ancilla);
+        }
 
-        //   001  |  010 // done
-        //   111  |  010 // done
+        //  Input | Output
+        //   010  |  000    // do nothing
 
-        //   110  |  101 // done
-        //   000  |  101 // done
+        //  Input | Output
+        //   011  |  110
+        within { X(input[0]); }
+        apply {
+            use ancilla = Qubit();
+            CCNOT(input[1], input[2], ancilla);
+            // we can measure the ancilla as it does not influence the states
+            if M(ancilla) == One {
+                // input is |111> so due to the within condition, so make output |110>
+                LeftShiftBy1(input, output);
+            }
+            Reset(ancilla);
+        }
 
-        //   011  |  110 // done
-        //   101  |  110 // done
-        // when there are two 1s in the input, both with LSB qubit 2 as a 1, the output is 110
+        //  Input | Output
+        //   100  |  000    // do nothing
 
-        // got sporadic passes (due to random number generation) so used count var and if...elif...else
-        // to try and pass a higher percentage of the time
+        // when first and last input qubits are 1, the output's middle qubit is 1
+        //  Input | Output
+        //   101  |  110
+        within { X(input[1]); }
+        apply {
+            use ancilla = Qubit();
+            CCNOT(input[0], input[2], ancilla);
+            if M(ancilla) == One {
+                // input is temporarily |111> due to the within condition
+                // left shift to make output |110>
+                LeftShiftBy1(input, output);
+                // ApplyToEach(X, output[0..1]);
+            }
+            Reset(ancilla);
+        }
+
+        //  Input | Output
+        //   110  |  101
+        within { X(input[2]); }
+        apply {
+            use ancilla = Qubit();
+            CCNOT(input[0], input[1], ancilla);
+            if M(ancilla) == One {
+                LeftShiftBy1(input, output);
+                X(output[2]);
+                // X(output[0]);
+            }
+            Reset(ancilla);
+        }
 
         //  Input | Output
         //   111  |  010
-        mutable count = 0;
-        for i in 0 .. Length(input) - 1 {
-            if (M(input[i]) == One) { set count += 1; }
-        }
-        // if the input qubits are all 1, the output qubits are 010
-        if count == Length(input) {
+        // use 2 of 3 qubits to determine if ancilla should be activated
+        use ancilla = Qubit();
+        Controlled X(input[0..2], ancilla); // if input is |111>, ancilla will be 1
+        if M(ancilla) == One {
+            // could do it just an X(output[1]) but
+            // in the spirit of the assignment, doing the shift functions
+            // |111> -> |011>
+            // C01_RightShiftBy1(input, output);
+            // // |011> -> |001>
+            // C01_RightShiftBy1(output, output);
+            // // |001> -> |010>
+            // LeftShiftBy1(output, output);
             X(output[1]);
         }
-        elif count == 0 {
-            //  Input | Output
-            //   000  |  101
-            ApplyToEach(X, input);
-            X(output[0]);
-            X(output[2]);
-            ApplyToEach(X, input);
-        }
-        elif count == 1 {
-            //  Input | Output
-            //   001  |  010
-            within { X(input[0]); X(input[1]); }
-            apply {
-                LeftShiftBy1(input, output);
-            }
-        }
-        elif count == 2 {
-            //  Input | Output
-            //   110  |  101
-            within { X(input[2]); }
-            apply {
-                X(output[0]);
-                X(output[2]);
-            }
+        Reset(ancilla);
 
-            //  Input | Output
-            //   011  |  110
-            within { X(input[0]); }
-            apply {
-                LeftShiftBy1(input, output);
-            }
+        // DumpMachine();
 
-            // when first and last input qubits are 1, the output's middle qubit is 1
-            //  Input | Output
-            //   101  |  110
-            within { X(input[1]); }
-            apply {
-                C01_RightShiftBy1(input, output); // once had 2 failures
-                // X(output[0]);
-                X(output[1]);
-            }
-        }
+        // commented out the right and left shift functions as they are not needed
+        // the shift functions also assume that the output is |000> at the start
+        // so I can't feed in the output from the previous operation
     }
 }
+
+// notes on final challenge problem C02_SimonBB
+// odd number of 1s in the input: then then odd number of 1s in the output
+// even number of 1s in the input: then even number of 1s in the output
+
+//  Input | Output
+// ---------------
+//   100  |  000 // dont change anything (outputs)
+//   010  |  000 // dont change anything
+// when there is only one 1 in the input in qubit position 0 or 1, the output is 000
+
+//   001  |  010 // done
+//   111  |  010 // done
+
+//   110  |  101 // done
+//   000  |  101 // done
+
+//   011  |  110 // done
+//   101  |  110 // done
+// when there are two 1s in the input, both with LSB qubit 2 as a 1, the output is 110
+
+// got sporadic passes (due to random number generation) so used count var and if...elif...else
+// to try and pass a higher percentage of the time
+
+//  Input | Output
+// ---------------
+//   000  |  101    //                                X(output[0]), X(output[2])
+//   001  |  010    // shiftLeftBy1
+//   010  |  000    // shiftLeftBy1, shiftLeftBy1     or leave output as is
+//   011  |  110    // shiftLeftBy1
+//   100  |  000    // shiftLeftBy1                   or leave output as is
+//   101  |  110    // shiftLeftBy1,                  X(output[0])
+//   110  |  101    // shiftLeftBy1,                  X(output[2])
+//   111  |  010    // shiftLeftBy1, shiftLeftBy1,    shiftRightBy1
+
+// 1 in input, 2 in output for these cases
+//  000 : 000{2}, 000{4}
+//  010 : 010{1}, 010{7}
+//  101 : 101{0}, 101{6}
+//  110 : 110{3}, 110{5}
