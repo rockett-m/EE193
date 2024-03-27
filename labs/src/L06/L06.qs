@@ -226,113 +226,35 @@ namespace MITRE.QSD.L06 {
     operation C02_SimonBB (input : Qubit[], output : Qubit[]) : Unit {
         // TODO
 
-        // DumpMachine();
-        //  Input | Output
-        //   000  |  101
-        ApplyToEach(X, input[0..2]); // attempt to get input as |111>
-        use ancilla = Qubit();
-        Controlled X(input[0..2], ancilla); // if input is |111>, ancilla will be 1
-        if M(ancilla) == One {
-            // LeftShiftBy1(input, output); // |111> -> |110>
-            // LeftShiftBy1(output, output); // |110> -> |100>
-            // X(output[2]);
-            X(output[2]); X(output[0]); //works also
-        }
-        Reset(ancilla);
+        ///  000  |  101
+        open Microsoft.Quantum.Arrays;
+        ApplyToEach(X, input[0..2]);
+        CCNOT(input[0], input[1], output[0]);
+        CCNOT(input[1], input[2], output[2]);
         ApplyToEach(X, input[0..2]);
 
-        //  Input | Output
         //   001  |  010
-        within { X(input[0]); X(input[1]); }
-        apply {
-            use ancilla = Qubit();
-            // we know first 2 qubits are 1 due to the within condition
-            // if the last qubit is 1, then ancilla will be 1, and trigger our logic
-            Controlled X(input[0..2], ancilla);
-            // use controls of ancilla and input[2]
-            if M(ancilla) == One {
-                // |111> -> |110>; |110> -> |100>; |100> -> |010>
-                // LeftShiftBy1(input, output);
-                // LeftShiftBy1(output, output);
-                // C01_RightShiftBy1(output, output);
-                X(output[1]);
-            }
-            Reset(ancilla);
-        }
+        ApplyToEach(X, input[0..1]);
+        CCNOT(input[0], input[1], output[1]);
+        ApplyToEach(X, input[0..1]);
 
-        //  Input | Output
-        //   010  |  000    // do nothing
-
-        //  Input | Output
         //   011  |  110
-        within { X(input[0]); }
-        apply {
-            use ancilla = Qubit();
-            CCNOT(input[1], input[2], ancilla);
-            // we can measure the ancilla as it does not influence the states
-            if M(ancilla) == One {
-                // input is |111> so due to the within condition, so make output |110>
-                LeftShiftBy1(input, output);
-            }
-            Reset(ancilla);
-        }
+        X(input[0]);
+        CCNOT(input[1], input[2], output[0]);
+        X(input[0]);
 
-        //  Input | Output
-        //   100  |  000    // do nothing
-
-        // when first and last input qubits are 1, the output's middle qubit is 1
-        //  Input | Output
         //   101  |  110
-        within { X(input[1]); }
-        apply {
-            use ancilla = Qubit();
-            CCNOT(input[0], input[2], ancilla);
-            if M(ancilla) == One {
-                // input is temporarily |111> due to the within condition
-                // left shift to make output |110>
-                LeftShiftBy1(input, output);
-                // ApplyToEach(X, output[0..1]);
-            }
-            Reset(ancilla);
-        }
+        X(input[1]);
+        CCNOT(input[0], input[2], output[0]);
+        X(input[1]);
 
-        //  Input | Output
         //   110  |  101
-        within { X(input[2]); }
-        apply {
-            use ancilla = Qubit();
-            CCNOT(input[0], input[1], ancilla);
-            if M(ancilla) == One {
-                LeftShiftBy1(input, output);
-                X(output[2]);
-                // X(output[0]);
-            }
-            Reset(ancilla);
-        }
+        X(input[2]);
+        CCNOT(input[0], input[1], output[0]);
+        X(input[2]);
 
-        //  Input | Output
         //   111  |  010
-        // use 2 of 3 qubits to determine if ancilla should be activated
-        use ancilla = Qubit();
-        Controlled X(input[0..2], ancilla); // if input is |111>, ancilla will be 1
-        if M(ancilla) == One {
-            // could do it just an X(output[1]) but
-            // in the spirit of the assignment, doing the shift functions
-            // |111> -> |011>
-            // C01_RightShiftBy1(input, output);
-            // // |011> -> |001>
-            // C01_RightShiftBy1(output, output);
-            // // |001> -> |010>
-            // LeftShiftBy1(output, output);
-            X(output[1]);
-        }
-        Reset(ancilla);
-
-        // DumpMachine();
-
-        // commented out the right and left shift functions as they are not needed
-        // the shift functions also assume that the output is |000> at the start
-        // so I can't feed in the output from the previous operation
+        CCNOT(input[0], input[1], output[1]);
     }
 }
 
@@ -375,3 +297,119 @@ namespace MITRE.QSD.L06 {
 //  010 : 010{1}, 010{7}
 //  101 : 101{0}, 101{6}
 //  110 : 110{3}, 110{5}
+
+
+
+
+// invalid because we entangled ancilla with inputs
+// we are not supposed to measure the inputs
+// the entanglement should not happen to not alter state as well
+
+
+// // DumpMachine();
+// //  Input | Output
+// //   000  |  101
+// ApplyToEach(X, input[0..2]); // attempt to get input as |111>
+// use ancilla = Qubit();
+// Controlled X(input[0..2], ancilla); // if input is |111>, ancilla will be 1
+// if M(ancilla) == One {
+//     // LeftShiftBy1(input, output); // |111> -> |110>
+//     // LeftShiftBy1(output, output); // |110> -> |100>
+//     // X(output[2]);
+//     X(output[2]); X(output[0]); //works also
+// }
+// Reset(ancilla);
+// ApplyToEach(X, input[0..2]);
+
+// //  Input | Output
+// //   001  |  010
+// within { X(input[0]); X(input[1]); }
+// apply {
+//     use ancilla = Qubit();
+//     // we know first 2 qubits are 1 due to the within condition
+//     // if the last qubit is 1, then ancilla will be 1, and trigger our logic
+//     Controlled X(input[0..2], ancilla);
+//     // use controls of ancilla and input[2]
+//     if M(ancilla) == One {
+//         // |111> -> |110>; |110> -> |100>; |100> -> |010>
+//         // LeftShiftBy1(input, output);
+//         // LeftShiftBy1(output, output);
+//         // C01_RightShiftBy1(output, output);
+//         X(output[1]);
+//     }
+//     Reset(ancilla);
+// }
+
+// //  Input | Output
+// //   010  |  000    // do nothing
+
+// //  Input | Output
+// //   011  |  110
+// within { X(input[0]); }
+// apply {
+//     use ancilla = Qubit();
+//     CCNOT(input[1], input[2], ancilla);
+//     // we can measure the ancilla as it does not influence the states
+//     if M(ancilla) == One {
+//         // input is |111> so due to the within condition, so make output |110>
+//         LeftShiftBy1(input, output);
+//     }
+//     Reset(ancilla);
+// }
+
+// //  Input | Output
+// //   100  |  000    // do nothing
+
+// // when first and last input qubits are 1, the output's middle qubit is 1
+// //  Input | Output
+// //   101  |  110
+// within { X(input[1]); }
+// apply {
+//     use ancilla = Qubit();
+//     CCNOT(input[0], input[2], ancilla);
+//     if M(ancilla) == One {
+//         // input is temporarily |111> due to the within condition
+//         // left shift to make output |110>
+//         LeftShiftBy1(input, output);
+//         // ApplyToEach(X, output[0..1]);
+//     }
+//     Reset(ancilla);
+// }
+
+// //  Input | Output
+// //   110  |  101
+// within { X(input[2]); }
+// apply {
+//     use ancilla = Qubit();
+//     CCNOT(input[0], input[1], ancilla);
+//     if M(ancilla) == One {
+//         LeftShiftBy1(input, output);
+//         X(output[2]);
+//         // X(output[0]);
+//     }
+//     Reset(ancilla);
+// }
+
+// //  Input | Output
+// //   111  |  010
+// // use 2 of 3 qubits to determine if ancilla should be activated
+// use ancilla = Qubit();
+// Controlled X(input[0..2], ancilla); // if input is |111>, ancilla will be 1
+// if M(ancilla) == One {
+//     // could do it just an X(output[1]) but
+//     // in the spirit of the assignment, doing the shift functions
+//     // |111> -> |011>
+//     // C01_RightShiftBy1(input, output);
+//     // // |011> -> |001>
+//     // C01_RightShiftBy1(output, output);
+//     // // |001> -> |010>
+//     // LeftShiftBy1(output, output);
+//     X(output[1]);
+// }
+// Reset(ancilla);
+
+// // DumpMachine();
+
+// // commented out the right and left shift functions as they are not needed
+// // the shift functions also assume that the output is |000> at the start
+// // so I can't feed in the output from the previous operation
