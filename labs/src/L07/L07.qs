@@ -4,6 +4,8 @@
 
 namespace MITRE.QSD.L07 {
 
+    // open Microsoft.Quantum.Logical;
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Intrinsic;
@@ -36,7 +38,9 @@ namespace MITRE.QSD.L07 {
     operation E01_XOR (classicalBits : Bool[], register : Qubit[]) : Unit
     is Adj {
         // TODO
-        fail "Not implemented.";
+        for i in 0..Length(classicalBits)-1 {
+            if classicalBits[i] { X(register[i]); }
+        }
     }
 
 
@@ -59,7 +63,13 @@ namespace MITRE.QSD.L07 {
         target : Qubit
     ) : Unit {
         // TODO
-        fail "Not implemented.";
+        within { ApplyToEachA(X, register); }
+        apply { Controlled Z(register, target); }
+
+        // same as this:
+        // ApplyToEach(X, register);
+        // Controlled Z(register, target);
+        // ApplyToEach(X, register);
     }
 
 
@@ -113,7 +123,21 @@ namespace MITRE.QSD.L07 {
         // its original state.
 
         // TODO
-        fail "Not implemented.";
+        E01_XOR(originalMessage, candidateEncryptionKey);
+        // easy to see the values of the origMsg and candEncKey (bool)
+
+        for i in 0..Length(originalMessage)-1 {
+            // make the candidate key resemble the encrypted message
+            if encryptedMessage[i] == false { X(candidateEncryptionKey[i]); }
+        }
+        Controlled Z(candidateEncryptionKey, target);
+
+        for i in 0..Length(originalMessage)-1 {
+            // restore statae
+            if encryptedMessage[i] == false { X(candidateEncryptionKey[i]); }
+        }
+        // restore state
+        Adjoint E01_XOR(originalMessage, candidateEncryptionKey);
     }
 
 
@@ -147,7 +171,15 @@ namespace MITRE.QSD.L07 {
         target : Qubit
     ) : Unit {
         // TODO
-        fail "Not implemented.";
+        oracle(register, target);
+
+        ApplyToEach(H, register);
+        // zero controlled Z
+        within { ApplyToEachA(X, register) }
+        // phase kickback if and only iff all reg bits are 1 (target is 1)
+        apply {  Controlled Z(register, target); }
+
+        ApplyToEach(H, register);
     }
 
 
@@ -181,6 +213,33 @@ namespace MITRE.QSD.L07 {
         let numIterations = Round(PI() / 4.0 * Sqrt(N));
 
         // TODO
-        fail "Not implemented.";
+        use register = Qubit[numberOfQubits];
+        use target = Qubit();
+
+        // prepare state
+        ApplyToEach(H, register);
+        X(target);
+
+        // run Grover search algo
+        for i in 0..numIterations-1 {
+            // run oracle
+            E04_GroverIteration(oracle, register, target);
+        }
+
+        // each result has zeroness and oneness a double between 0.0 and 1.0
+        mutable results = [false, size=Length(register)];
+
+        // measure and see which is close to 1 - that one is true
+        for i in 0..Length(register)-1 {
+            // majority oneness for the amplified result index
+            if (M(register[i]) == One) {
+                // mark only this index as true in the results array
+                set results w/= i <- true;
+            }
+        }
+
+        ResetAll(register); Reset(target);
+
+        return results;
     }
 }
