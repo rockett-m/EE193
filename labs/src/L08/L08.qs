@@ -4,11 +4,14 @@
 
 namespace MITRE.QSD.L08 {
 
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Arrays;
 
 
     /// # Summary
@@ -27,8 +30,39 @@ namespace MITRE.QSD.L08 {
         //  2. The Microsoft.Quantum.Intrinsic.R1Frac() gate.
 
         // TODO
-        fail "Not implemented.";
+        // Hint: There are two operations you may want to use here:
+        //  1. Your implementation of register reversal in Lab 3, Exercise 2.
+        //  2. The Microsoft.Quantum.Intrinsic.R1Frac() gate.
+
+        // TODO
+        let n = Length(register);
+        let idx_final_reg = n - 1;
+
+        for idx in 0..idx_final_reg {
+            // Apply the Hadamard gate to every qubit in the register
+            H(register[idx]);
+
+            // don't apply R gates when there is only one qubit left
+            for k in 2..(idx_final_reg - idx + 1) {
+                let idx_tgt = idx + (k - 1);
+                Controlled R1Frac([register[idx]], (2, k, register[idx_tgt]));
+            }
+        }
+
+        // Reverse the register
+        mutable num_qubits = n;
+        // clean midpoint either way now
+        if (n % 2 == 1) { let num_qubits = n - 1; }
+        // index up to halfway (leave middle alone odd since no need to swap)
+        let iter_bounds = (num_qubits / 2) - 1;
+        for left in 0 .. iter_bounds {
+            let right = num_qubits - 1 - left;
+            // swap the qubits
+            SWAP(register[left], register[right]);
+        }
     }
+
+
 
 
     /// # Summary
@@ -67,6 +101,46 @@ namespace MITRE.QSD.L08 {
         sampleRate : Double
     ) : Double {
         // TODO
-        fail "Not implemented.";
+        // Hint: You may want to use the Microsoft.Quantum.Math.ArcTan2() function.
+        let n = Length(register);
+        let N = 2^Length(register);
+
+        // apply the Quantum Fourier Transform
+        E01_QFT(register);
+        // Message($"sampleRate: {sampleRate}; n: {n}; N: {N}");
+
+        // make empty array to hold results
+        mutable results = [Zero, size=n];
+
+        // print out the results for debugging
+        for idx in 0..n-1 {
+            set results w/= idx <- M(register[idx]);
+        }
+        // Message($"results: {results}");
+        ResetAll(register);
+
+        // get the decimal value of the results
+        mutable idx_decimal = 0;
+
+        for idx in 0..n-1 {
+            if results[idx] == One {
+                set idx_decimal = idx_decimal + 2^(n - idx - 1);
+            }
+        }
+
+        // if idx is greater than N/2, mirror the results
+        // so if binary results array to decimal translation / N > 0.5
+        // then mirror the results as in (N - decimal) / N
+        // multiplied by sample rate to get the frequency
+        // if we have n=4, N=16, and idx_decimal=9; fraction = 9/16 = 0.5625
+        // so we mirror the results as in 16 - 9 = 7; fraction = 7/16 = 0.4375
+        // as our frequency has to be less than N/2
+        mutable fraction = IntAsDouble(idx_decimal) / IntAsDouble(N);
+        if (fraction > 0.50) {
+            set idx_decimal = N / 2 - (idx_decimal - (N / 2));
+            set fraction = IntAsDouble(idx_decimal) / IntAsDouble(N);
+        }
+        let freq = sampleRate * fraction;
+        return freq;
     }
 }

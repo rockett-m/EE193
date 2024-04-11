@@ -68,6 +68,13 @@ namespace MITRE.QSD.Tests.L08 {
             let estimatedFreq = E02_EstimateFrequency(register, sampleRate);
             let actualFreq = IntAsDouble(freqBin) * sampleRate / IntAsDouble(2 ^ numQubits);
 
+            // print all these values for debugging
+            // Message($"numQubits: {numQubits}");
+            // Message($"freqBin: {freqBin}");
+            // Message($"sampleRate: {sampleRate}");
+            // Message($"estimatedFreq: {estimatedFreq}");
+            // Message($"actualFreq: {actualFreq}");
+
             Fact(
                 estimatedFreq < (actualFreq + TOLERANCE) and estimatedFreq > (actualFreq - TOLERANCE),
                 "Incorrect frequency."
