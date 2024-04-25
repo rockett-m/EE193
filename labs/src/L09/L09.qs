@@ -16,7 +16,8 @@ namespace MITRE.QSD.L09 {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Unstable.Arithmetic;
-
+    open Microsoft.Quantum.Diagnostics;
+    open MITRE.QSD.L08;
 
     /// # Summary
     /// Performs modular in-place multiplication by a classical constant.
@@ -141,7 +142,24 @@ namespace MITRE.QSD.L09 {
         //    qubit register by a constant under some modulus.
 
         // TODO
-        fail "Not implemented.";
+        let n = Length(input);
+
+        // apply X gate to the last qubit of the output register (LSB)
+        X(output[Length(output) - 1]);
+
+        // Message($"Input length: {n}");
+        // Message($"Output length: {Length(output)}");
+
+        // iterate over input register in reverse order
+        for idx_fwd in 0 .. n - 1 {
+            let idx_rev = (n - 1) - idx_fwd;
+            // c = A^(2^(n-i-1)) mod b
+            let mod_exp = ExpModI(a, 2^idx_rev, b);
+            // |O> = |O * c mod b>
+            Controlled ModularMultiplyByConstant(
+                [input[idx_fwd]],
+                (b, mod_exp, output));
+        }
     }
 
 
@@ -163,7 +181,7 @@ namespace MITRE.QSD.L09 {
     ///
     /// ## guess
     /// The number that's being guessed as a possible factor. This will become
-    /// the base of exponentiation for the modular arithmetic used in the 
+    /// the base of exponentiation for the modular arithmetic used in the
     /// subroutine.
     ///
     /// # Output
@@ -181,7 +199,36 @@ namespace MITRE.QSD.L09 {
         // their integer representation.
 
         // TODO
-        fail "Not implemented.";
+        let (modulus, base) = (numberToFactor, guess);
+
+        // if we have perfect power of 2 like 2^6 = 64, keep it as is
+        // otherwise, find the next power of 2 to represent the input space
+        mutable n = Floor(Lg(IntAsDouble(modulus)));
+        // mod 37 e.g. would be floor(log2(37)) = 5 but 2^5 = 32, 32 < 37 so we need 2^6
+        if (2^n < modulus) { set n = n + 1; }
+        // 2^n is the number of qubits needed to represent the input space
+        let inputSpaceSize = 2^n;
+
+        // create input and output registers with 2n and n qubits respectively
+        use (inputReg, outputReg) = (Qubit[2*n], Qubit[n]);
+
+        // apply Hadamard gate to the input register for uniform superposition
+        ApplyToEachA(H, inputReg);
+
+        // apply the quantum modular exponentiation function
+        E01_ModExp(base, modulus, inputReg, outputReg);
+
+        // apply the inverse quantum Fourier transform
+        Adjoint E01_QFT(inputReg);
+
+        // measure the input register
+        let measured = MeasureInteger(inputReg);
+
+        // reset qubits
+        ResetAll(inputReg); ResetAll(outputReg);
+
+        // return the measured value and the denominator (solution space size)
+        return (measured, 2^inputSpaceSize);
     }
 
 
@@ -250,6 +297,7 @@ namespace MITRE.QSD.L09 {
 
         // TODO
         fail "Not implemented.";
+        // Microsoft.Quantum.Math.GreatestCommonDivisorI()
     }
 
 
