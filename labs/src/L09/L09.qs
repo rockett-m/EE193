@@ -261,7 +261,48 @@ namespace MITRE.QSD.L09 {
         denominatorThreshold : Int
     ) : (Int, Int) {
         // TODO
-        fail "Not implemented.";
+        mutable (numer_test, denom_test) = (numerator, denominator);
+        // base case: first two convergents are 0/1 and 1/0
+        mutable convergent = (0, 1);
+
+        // avoid division by zero
+        mutable m = [0, 1];
+        mutable d = [1, 0];
+        // m_i = a_i * m_{i-1} + m_{i-2}
+        // d_i = a_i * d_{i-1} + d_{i-2}
+
+        mutable finish = false;
+
+        // denominatorThreshold is the maximum value for the denominator
+        for i in 2 .. denominatorThreshold {
+            if not finish {
+                let a_i = Floor(IntAsDouble(numer_test) / IntAsDouble(denom_test));
+                let remainder = numer_test - (a_i * denom_test);
+
+                // append new fraction to end of list
+                set m += [a_i * m[1] + m[0]];
+                set d += [a_i * d[1] + d[0]];
+
+                // pop first element to keep list size of 3 [i-2, i-1, curr]
+                set m = m[1 .. Length(m)-1];
+                set d = d[1 .. Length(d)-1];
+
+                let (_, highestDenom) = convergent;
+                // new high convergent found
+                if ((d[Length(d)-1] < denominatorThreshold) and (d[Length(d)-1] > highestDenom)) {
+                    set convergent = (m[Length(m)-1], d[Length(d)-1]);
+                    // Message($"Convergent: {convergent}");
+                }
+
+                if (remainder == 0) {
+                    set finish = true;
+                } else {
+                    set numer_test = denom_test;
+                    set denom_test = remainder;
+                }
+            }
+        }
+        return convergent;
     }
 
 
