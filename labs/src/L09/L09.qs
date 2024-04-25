@@ -411,6 +411,20 @@ namespace MITRE.QSD.L09 {
         period : Int
     ) : Int {
         // TODO
-        fail "Not implemented.";
+        // if the period is odd, return -1
+        if (period % 2 == 1) {
+            return -1;
+        }
+        // check lower and upper gcds
+        let gcd_low = GreatestCommonDivisorI(ExpModI(guess, period / 2, numberToFactor) - 1, numberToFactor);
+        if (gcd_low != 1 and gcd_low != numberToFactor) {
+            return gcd_low;
+        }
+        let gcd_high = GreatestCommonDivisorI(ExpModI(guess, period / 2, numberToFactor) + 1, numberToFactor);
+        if (gcd_high != 1 and gcd_high != numberToFactor) {
+            return gcd_high;
+        }
+        // can't factor, defaults to -2
+        return -2;
     }
 }
