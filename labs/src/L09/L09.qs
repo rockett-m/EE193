@@ -306,6 +306,65 @@ namespace MITRE.QSD.L09 {
     }
 
 
+
+    /// # Summary
+    /// Helper function to validate period for E04_FindPeriod
+    /// # Input
+    /// ## numberToFactor
+    /// The number that the user wants to find the factors for
+    ///
+    /// ## guess
+    /// Some co-prime integer that is smaller than numberToFactor
+    ///
+    /// ## period
+    /// The period of the function y = guess^x mod numberToFactor.
+    ///
+    operation E04_ValidatePeriod (numberToFactor : Int, guess : Int, period : Int) : Int {
+        // Hint: you can use the
+        // Microsoft.Quantum.Math.ExpModI()
+        // function to calculate the modular exponentiation.
+
+        // TODO
+        mutable period_ans = -2;
+        // cannot factor if period is odd, return -1
+        if (period % 2 == 1) {
+            Message("Period is odd...trying another period candidate");
+            return period_ans + 1;
+        }
+
+        // calculate the modular exponentiation
+        let lower = ExpModI(guess, period / 2, numberToFactor) - 1;
+        let upper = ExpModI(guess, period / 2, numberToFactor) + 1;
+
+        // if the period is even, we can find the GCD
+        let gcd_low  = GreatestCommonDivisorI(lower, numberToFactor);
+        let gcd_high = GreatestCommonDivisorI(upper, numberToFactor);
+
+        Message($"Guess: {guess}, Period: {period}, GCDs: {gcd_low}, {gcd_high}");
+
+        // if the GCD is not 1, we have found a factor
+        if (gcd_low != 1 and gcd_low != numberToFactor) {
+            Message($"Factor: {gcd_low}");
+            set period_ans = guess;
+        }
+        if (gcd_high != 1 and gcd_high != numberToFactor) {
+            Message($"Factor: {gcd_high}");
+            set period_ans = guess;
+        }
+        //
+        if (period_ans > 0) {
+            Message($"Period FOUND: {period_ans}");
+            return period_ans;
+        }
+
+        // if we can't find a factor, we can't use this period
+        Message("No factor found");
+        // return -2 if we can't find a factor
+        return period_ans;
+    }
+
+
+
     /// # Summary
     /// In this exercise, you are given two integers - a number that you want
     /// to find the factors of, and an arbitrary guess as to one of the
@@ -353,26 +412,14 @@ namespace MITRE.QSD.L09 {
 
                 // find the period candidate
                 mutable (period_cand, _) = E03_FindPeriodCandidate(guess_cand, numberToFactor, threshold);
-                // if period candidate is odd, find another candidate
-                if (period_cand % 2 == 0) and (period_cand != 0) {
-                    // find the period of the modular exponentiation function
 
-                    // calculate the modular exponentiation
-                    mutable lower = ExpModI(guess_cand, period_cand / 2, numberToFactor) - 1;
-                    mutable upper = ExpModI(guess_cand, period_cand / 2, numberToFactor) + 1;
-
-                    // if the period is even, we can find the GCD
-                    mutable gcd_low  = GreatestCommonDivisorI(lower, numberToFactor);
-                    mutable gcd_high = GreatestCommonDivisorI(upper, numberToFactor);
-
-                    // if the GCD is not 1, we have found a factor
-                    if (gcd_low != 1 or gcd_high != 1) {
-                        set period_ans = period_cand;
-                        Message($"Period: {period_ans}");
-                        return period_ans;
-                    }
-
-                    // check
+                // validate the period candidate
+                // return -2 if we can't find a factor
+                // return -1 if the period is odd
+                // return the period if we find a factor (must be > 0)
+                let period_result = E04_ValidatePeriod(numberToFactor, guess_cand, period_cand);
+                if (period_result > 0) {
+                    return period_result;
                 }
 
             }
@@ -428,3 +475,33 @@ namespace MITRE.QSD.L09 {
         return -2;
     }
 }
+
+
+
+
+// if (period_cand % 2 == 0) and (period_cand != 0) {
+//     // find the period of the modular exponentiation function
+
+//     // calculate the modular exponentiation
+//     mutable lower = ExpModI(guess_cand, period_cand / 2, numberToFactor) - 1;
+//     mutable upper = ExpModI(guess_cand, period_cand / 2, numberToFactor) + 1;
+
+//     // if the period is even, we can find the GCD
+//     mutable gcd_low  = GreatestCommonDivisorI(lower, numberToFactor);
+//     mutable gcd_high = GreatestCommonDivisorI(upper, numberToFactor);
+
+//     Message($"Guess: {guess_cand}, Period: {period_cand}, GCDs: {gcd_low}, {gcd_high}");
+
+//     // if the GCD is not 1, we have found a factor
+//     if (gcd_low != 1 and gcd_low != numberToFactor) {
+//         set period_ans = period_cand;
+//         Message($"Period: {period_ans}");
+//         return period_ans;
+//     }
+//     if (gcd_high != 1 and gcd_high != numberToFactor) {
+//         set period_ans = period_cand;
+//         Message($"Period: {period_ans}");
+//         return period_ans;
+//     }
+//     // if we can't find a factor, we can't use this period
+// }
