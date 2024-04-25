@@ -337,8 +337,48 @@ namespace MITRE.QSD.L09 {
         // function to calculate the GCD of two numbers.
 
         // TODO
-        fail "Not implemented.";
-        // Microsoft.Quantum.Math.GreatestCommonDivisorI()
+        mutable period_ans = 0;
+        let threshold = Ceiling(Lg(IntAsDouble(numberToFactor)));
+
+        // mutable guess_cand = guess;
+
+        // iterate over guesses for the period up
+        // for guess_cand in 2 .. threshold - 1 {
+        for guess_cand in 2 .. numberToFactor {
+
+            let gcd = GreatestCommonDivisorI(guess_cand, numberToFactor);
+
+            // guess is co-prime with numberToFactor
+            if (gcd == 1) {
+
+                // find the period candidate
+                mutable (period_cand, _) = E03_FindPeriodCandidate(guess_cand, numberToFactor, threshold);
+                // if period candidate is odd, find another candidate
+                if (period_cand % 2 == 0) and (period_cand != 0) {
+                    // find the period of the modular exponentiation function
+
+                    // calculate the modular exponentiation
+                    mutable lower = ExpModI(guess_cand, period_cand / 2, numberToFactor) - 1;
+                    mutable upper = ExpModI(guess_cand, period_cand / 2, numberToFactor) + 1;
+
+                    // if the period is even, we can find the GCD
+                    mutable gcd_low  = GreatestCommonDivisorI(lower, numberToFactor);
+                    mutable gcd_high = GreatestCommonDivisorI(upper, numberToFactor);
+
+                    // if the GCD is not 1, we have found a factor
+                    if (gcd_low != 1 or gcd_high != 1) {
+                        set period_ans = period_cand;
+                        Message($"Period: {period_ans}");
+                        return period_ans;
+                    }
+
+                    // check
+                }
+
+            }
+        }
+        Message($"Period: {period_ans}");
+        return period_ans;
     }
 
 
