@@ -2,7 +2,10 @@
 // Lab 9: Shor's Factorization Algorithm
 // Copyright 2024 The MITRE Corporation. All Rights Reserved.
 //
-// Due 4/24.
+// Due 4/26.
+//
+// run on single test without messages output:
+// pytest -s tests/test_L09.py::test_L09E04
 //
 // Note: Use little endian ordering when storing and retrieving integers from
 // qubit registers in this lab.
@@ -147,9 +150,6 @@ namespace MITRE.QSD.L09 {
         // apply X gate to the last qubit of the output register (LSB)
         X(output[Length(output) - 1]);
 
-        // Message($"Input length: {n}");
-        // Message($"Output length: {Length(output)}");
-
         // iterate over input register in reverse order
         for idx_fwd in 0 .. n - 1 {
             let idx_rev = (n - 1) - idx_fwd;
@@ -201,17 +201,12 @@ namespace MITRE.QSD.L09 {
         // TODO
         let (modulus, base) = (numberToFactor, guess);
 
-        // if we have perfect power of 2 like 2^6 = 64, keep it as is
-        // otherwise, find the next power of 2 to represent the input space
-        mutable n = Floor(Lg(IntAsDouble(modulus)));
-        // mod 37 e.g. would be floor(log2(37)) = 5 but 2^5 = 32, 32 < 37 so we need 2^6
-        if (2^n < modulus) { set n = n + 1; }
-        // 2^n is the number of qubits needed to represent the input space
-        let inputSpaceSize = 2^n;
-
+        let n = Ceiling(Lg(IntAsDouble(modulus)));
+        let numInputQubits = 2 * n;
+        let numOutputQubits = n;
         // create input and output registers with 2n and n qubits respectively
-        use (inputReg, outputReg) = (Qubit[2*n], Qubit[n]);
-
+        use (inputReg, outputReg) = (Qubit[numInputQubits], Qubit[numOutputQubits]);
+        // Message($"Input register size: {numInputQubits}, Output register size: {numOutputQubits}");
         // apply Hadamard gate to the input register for uniform superposition
         ApplyToEachA(H, inputReg);
 
@@ -228,7 +223,8 @@ namespace MITRE.QSD.L09 {
         ResetAll(inputReg); ResetAll(outputReg);
 
         // return the measured value and the denominator (solution space size)
-        return (measured, 2^inputSpaceSize);
+        // Message($"Measured: {measured}, 2^(2*n): {2^(2*n)}");
+        return (measured, 2^(2*numInputQubits));
     }
 
 
@@ -264,10 +260,11 @@ namespace MITRE.QSD.L09 {
         mutable (numer_test, denom_test) = (numerator, denominator);
         // base case: first two convergents are 0/1 and 1/0
         mutable convergent = (0, 1);
+        mutable highestConvergent = (0, 1);
 
         // avoid division by zero
-        mutable m = [0, 1];
-        mutable d = [1, 0];
+        mutable p = [0, 1];
+        mutable q = [1, 0];
         // m_i = a_i * m_{i-1} + m_{i-2}
         // d_i = a_i * d_{i-1} + d_{i-2}
 
@@ -276,22 +273,20 @@ namespace MITRE.QSD.L09 {
         // denominatorThreshold is the maximum value for the denominator
         for i in 2 .. denominatorThreshold {
             if not finish {
+
                 let a_i = Floor(IntAsDouble(numer_test) / IntAsDouble(denom_test));
                 let remainder = numer_test - (a_i * denom_test);
 
                 // append new fraction to end of list
-                set m += [a_i * m[1] + m[0]];
-                set d += [a_i * d[1] + d[0]];
+                set p += [p[0] + p[1] * a_i];
+                set q += [q[0] + q[1] * a_i];
 
                 // pop first element to keep list size of 3 [i-2, i-1, curr]
-                set m = m[1 .. Length(m)-1];
-                set d = d[1 .. Length(d)-1];
+                set p = p[1 .. Length(p)-1];
+                set q = q[1 .. Length(q)-1];
 
-                let (_, highestDenom) = convergent;
-                // new high convergent found
-                if ((d[Length(d)-1] < denominatorThreshold) and (d[Length(d)-1] > highestDenom)) {
-                    set convergent = (m[Length(m)-1], d[Length(d)-1]);
-                    // Message($"Convergent: {convergent}");
+                if (q[Length(q)-1] < denominatorThreshold) {
+                    set convergent = (p[Length(p)-1], q[Length(q)-1]);
                 }
 
                 if (remainder == 0) {
@@ -300,69 +295,24 @@ namespace MITRE.QSD.L09 {
                     set numer_test = denom_test;
                     set denom_test = remainder;
                 }
+
+                let (highestNumerator, highestDenominator) = highestConvergent;
+                let (numerator, denominator) = convergent;
+                if ((numerator / denominator >= highestNumerator / highestDenominator) and (denominator > highestDenominator)) {
+                    set highestConvergent = convergent;
+                }
+
             }
         }
-        return convergent;
+        // print convergent for debugging
+        let (highestNumerator, highestDenominator) = highestConvergent;
+        if highestNumerator > 0 and highestDenominator > 0 {
+            Message($"Highest convergent: {highestConvergent}");
+        } else {
+            // Message($"Convergent: {convergent}");
+        }
+        return highestConvergent;
     }
-
-
-
-    /// # Summary
-    /// Helper function to validate period for E04_FindPeriod
-    /// # Input
-    /// ## numberToFactor
-    /// The number that the user wants to find the factors for
-    ///
-    /// ## guess
-    /// Some co-prime integer that is smaller than numberToFactor
-    ///
-    /// ## period
-    /// The period of the function y = guess^x mod numberToFactor.
-    ///
-    operation E04_ValidatePeriod (numberToFactor : Int, guess : Int, period : Int) : Int {
-        // Hint: you can use the
-        // Microsoft.Quantum.Math.ExpModI()
-        // function to calculate the modular exponentiation.
-
-        // TODO
-        mutable period_ans = -2;
-        // cannot factor if period is odd, return -1
-        if (period % 2 == 1) {
-            Message("Period is odd...trying another period candidate");
-            return period_ans + 1;
-        }
-
-        // calculate the modular exponentiation
-        let lower = ExpModI(guess, period / 2, numberToFactor) - 1;
-        let upper = ExpModI(guess, period / 2, numberToFactor) + 1;
-
-        // if the period is even, we can find the GCD
-        let gcd_low  = GreatestCommonDivisorI(lower, numberToFactor);
-        let gcd_high = GreatestCommonDivisorI(upper, numberToFactor);
-
-        Message($"Guess: {guess}, Period: {period}, GCDs: {gcd_low}, {gcd_high}");
-
-        // if the GCD is not 1, we have found a factor
-        if (gcd_low != 1 and gcd_low != numberToFactor) {
-            Message($"Factor: {gcd_low}");
-            set period_ans = guess;
-        }
-        if (gcd_high != 1 and gcd_high != numberToFactor) {
-            Message($"Factor: {gcd_high}");
-            set period_ans = guess;
-        }
-        //
-        if (period_ans > 0) {
-            Message($"Period FOUND: {period_ans}");
-            return period_ans;
-        }
-
-        // if we can't find a factor, we can't use this period
-        Message("No factor found");
-        // return -2 if we can't find a factor
-        return period_ans;
-    }
-
 
 
     /// # Summary
@@ -385,49 +335,94 @@ namespace MITRE.QSD.L09 {
     ///
     /// # Output
     /// The period of y = guess^x mod numberToFactor.
-    operation E04_FindPeriod (numberToFactor : Int, guess : Int) : Int
-    {
-        // Note: you can't use while loops in operations in Q#.
-        // You'll have to use a repeat loop if you want to run
-        // something several times.
-
-        // Hint: you can use the
-        // Microsoft.Quantum.Math.GreatestCommonDivisorI()
-        // function to calculate the GCD of two numbers.
+    operation E04_FindPeriod (
+        numberToFactor : Int,
+        initialGuess : Int
+    ) : Int {
+        // Hint: you can use the Microsoft.Quantum.Math.ExpModI() function to
+        // calculate a modular exponent classically.
 
         // TODO
-        mutable period_ans = 0;
-        let threshold = Ceiling(Lg(IntAsDouble(numberToFactor)));
+        Message("");
+        Message($"Number to factor: {numberToFactor}, Initial guess: {initialGuess}");
+        Message("");
+        // we know that guess is not a factor of numberToFactor
+        // 1 < guess < numberToFactor
+        // Check if the period candidate is valid
+        mutable guess = initialGuess;
+        mutable periodFound = false;
+        mutable period = guess;
+        mutable numGuesses = 0;
 
-        // mutable guess_cand = guess;
+        repeat {
+            // Message($"Trying with guess: {guess}");
 
-        // iterate over guesses for the period up
-        // for guess_cand in 2 .. threshold - 1 {
-        for guess_cand in 2 .. numberToFactor {
-
-            let gcd = GreatestCommonDivisorI(guess_cand, numberToFactor);
-
-            // guess is co-prime with numberToFactor
+            let gcd = GreatestCommonDivisorI(guess, numberToFactor);
             if (gcd == 1) {
+                // Message($"Trying with guess: {guess}");
+                // mutable (measured, size) = E02_FindApproxPeriod(numberToFactor, guess);
+                // Message($"Measured value: {measured}");
 
-                // find the period candidate
-                mutable (period_cand, _) = E03_FindPeriodCandidate(guess_cand, numberToFactor, threshold);
+                // mutable size = Ceiling(Lg(1.0* IntAsDouble(size)))^2;
+                // Message($"Size: {size}");
 
-                // validate the period candidate
-                // return -2 if we can't find a factor
-                // return -1 if the period is odd
-                // return the period if we find a factor (must be > 0)
-                let period_result = E04_ValidatePeriod(numberToFactor, guess_cand, period_cand);
-                if (period_result > 0) {
-                    return period_result;
+                // set (measured, _) = E02_FindApproxPeriod(numberToFactor, guess);
+                // // repeat {
+                // //     set (measured, _) = E02_FindApproxPeriod(numberToFactor, guess);
+                // // } until measured > 0;
+
+                // mutable (_, candidatePeriod) = E03_FindPeriodCandidate(measured, size, numberToFactor);
+
+
+                let (measured, size) = E02_FindApproxPeriod(numberToFactor, guess);
+                let size = Ceiling(Lg(1.0* IntAsDouble(size)))^2;
+                let (_, candidatePeriod) = E03_FindPeriodCandidate(measured, size, numberToFactor);
+                // print all
+                // Message($"Measured: {measured}, Size: {size}, Candidate period: {candidatePeriod}");
+
+                // Verify the candidate period with a classical check
+                if not (candidatePeriod % 2 == 0 and candidatePeriod > 1) {
+                    // Message($"[x] [invalid] Period candidate {candidatePeriod} failed the valid check");
+
+                } else {
+                    // Check if the period candidate is valid
+                    let g = candidatePeriod / 2;
+
+                    let lower = GreatestCommonDivisorI(ExpModI(guess, g, numberToFactor) - 1, numberToFactor);
+                    let upper = GreatestCommonDivisorI(ExpModI(guess, g, numberToFactor) + 1, numberToFactor);
+                    Message($"Lower: {lower}, Upper: {upper}");
+
+
+                    if (numberToFactor % lower == 0 and lower < numberToFactor) {
+                        Message($"[FOUND] Lower factor: {lower}; Period: {candidatePeriod}");
+                        set period = candidatePeriod;
+                        set periodFound = true;
+                        return period;
+                    }
+                    elif (numberToFactor % upper == 0 and upper < numberToFactor) {
+                        Message($"[FOUND] Upper factor: {upper}; Period: {candidatePeriod}");
+                        set period = candidatePeriod;
+                        set periodFound = true;
+                        return period;
+                    }
+                    else {
+                        Message($"[x] [invalid] Period candidate {candidatePeriod} failed the factor check");
+                    }
+
+                    Message($"[x] [mod] Period candidate {candidatePeriod} failed the mod check");
                 }
-
             }
-        }
-        Message($"Period: {period_ans}");
-        return period_ans;
-    }
 
+            if not periodFound {
+                set guess = (guess + 1) % numberToFactor;
+                if guess < 2 { set guess = 2; }
+                set numGuesses = numGuesses + 1;
+            }
+
+        } until periodFound;
+
+        return period;
+    }
 
     /// # Summary
     /// In this exercise, you are given a number to find the factors of,
@@ -475,33 +470,3 @@ namespace MITRE.QSD.L09 {
         return -2;
     }
 }
-
-
-
-
-// if (period_cand % 2 == 0) and (period_cand != 0) {
-//     // find the period of the modular exponentiation function
-
-//     // calculate the modular exponentiation
-//     mutable lower = ExpModI(guess_cand, period_cand / 2, numberToFactor) - 1;
-//     mutable upper = ExpModI(guess_cand, period_cand / 2, numberToFactor) + 1;
-
-//     // if the period is even, we can find the GCD
-//     mutable gcd_low  = GreatestCommonDivisorI(lower, numberToFactor);
-//     mutable gcd_high = GreatestCommonDivisorI(upper, numberToFactor);
-
-//     Message($"Guess: {guess_cand}, Period: {period_cand}, GCDs: {gcd_low}, {gcd_high}");
-
-//     // if the GCD is not 1, we have found a factor
-//     if (gcd_low != 1 and gcd_low != numberToFactor) {
-//         set period_ans = period_cand;
-//         Message($"Period: {period_ans}");
-//         return period_ans;
-//     }
-//     if (gcd_high != 1 and gcd_high != numberToFactor) {
-//         set period_ans = period_cand;
-//         Message($"Period: {period_ans}");
-//         return period_ans;
-//     }
-//     // if we can't find a factor, we can't use this period
-// }
