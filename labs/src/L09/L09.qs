@@ -201,30 +201,31 @@ namespace MITRE.QSD.L09 {
         // TODO
         let (modulus, base) = (numberToFactor, guess);
 
-        let n = Ceiling(Lg(IntAsDouble(modulus)));
-        let numInputQubits = 2 * n;
-        let numOutputQubits = n;
+        let n = Ceiling(Lg(IntAsDouble(modulus + 1)));
+        Message($"Number to factor: {modulus}, Guess: {base}");
+        // Message($"Number of qubits: {n*2} (input), {n} (output)");
+
         // create input and output registers with 2n and n qubits respectively
-        use (inputReg, outputReg) = (Qubit[numInputQubits], Qubit[numOutputQubits]);
+        use (inputReg, outputReg) = (Qubit[n*2], Qubit[n]);
         // Message($"Input register size: {numInputQubits}, Output register size: {numOutputQubits}");
         // apply Hadamard gate to the input register for uniform superposition
-        ApplyToEachA(H, inputReg);
-
-        // apply the quantum modular exponentiation function
-        E01_ModExp(base, modulus, inputReg, outputReg);
-
-        // apply the inverse quantum Fourier transform
-        Adjoint E01_QFT(inputReg);
-
-        // measure the input register
-        let measured = MeasureInteger(inputReg);
-
-        // reset qubits
+        mutable measured = 0;
+        within {
+            ApplyToEachA(H, inputReg);
+        } apply {
+            // apply the quantum modular exponentiation function
+            E01_ModExp(base, modulus, inputReg, outputReg);
+            // apply the inverse quantum Fourier transform
+            Adjoint E01_QFT(inputReg);
+            // measure the input register
+            set measured = MeasureInteger(inputReg);
+            // reset qubits
+            // return the measured value and the denominator (solution space size)
+        }
         ResetAll(inputReg); ResetAll(outputReg);
-
         // return the measured value and the denominator (solution space size)
         // Message($"Measured: {measured}, 2^(2*n): {2^(2*n)}");
-        return (measured, 2^(2*numInputQubits));
+        return (measured, 2^(2^n));
     }
 
 
@@ -285,7 +286,7 @@ namespace MITRE.QSD.L09 {
                 set p = p[1 .. Length(p)-1];
                 set q = q[1 .. Length(q)-1];
 
-                if (q[Length(q)-1] < denominatorThreshold) {
+                if (q[Length(q)-1] <= denominatorThreshold) {
                     set convergent = (p[Length(p)-1], q[Length(q)-1]);
                 }
 
@@ -296,9 +297,9 @@ namespace MITRE.QSD.L09 {
                     set denom_test = remainder;
                 }
 
-                let (highestNumerator, highestDenominator) = highestConvergent;
-                let (numerator, denominator) = convergent;
-                if ((numerator / denominator >= highestNumerator / highestDenominator) and (denominator > highestDenominator)) {
+                let (highestNum, highestDen) = highestConvergent;
+                let (num, den) = convergent;
+                if ((num / den >= highestNum / highestDen) and (den > highestDen)) {
                     set highestConvergent = convergent;
                 }
 
@@ -352,7 +353,9 @@ namespace MITRE.QSD.L09 {
         mutable guess = initialGuess;
         mutable periodFound = false;
         mutable period = guess;
-        mutable numGuesses = 0;
+
+        // if calling ExpMod, which is the costliest operation, use Quantum Exp not classical
+        let n = Ceiling(Lg(IntAsDouble(numberToFactor + 1)));
 
         repeat {
             // Message($"Trying with guess: {guess}");
@@ -360,38 +363,41 @@ namespace MITRE.QSD.L09 {
             let gcd = GreatestCommonDivisorI(guess, numberToFactor);
             if (gcd == 1) {
                 // Message($"Trying with guess: {guess}");
-                // mutable (measured, size) = E02_FindApproxPeriod(numberToFactor, guess);
-                // Message($"Measured value: {measured}");
+                let n = Ceiling(Lg(IntAsDouble(numberToFactor + 1)));
+                let (numInputQubits, numOutputQubits) = (n*2, n);
 
-                // mutable size = Ceiling(Lg(1.0* IntAsDouble(size)))^2;
-                // Message($"Size: {size}");
-
-                // set (measured, _) = E02_FindApproxPeriod(numberToFactor, guess);
-                // // repeat {
-                // //     set (measured, _) = E02_FindApproxPeriod(numberToFactor, guess);
-                // // } until measured > 0;
-
-                // mutable (_, candidatePeriod) = E03_FindPeriodCandidate(measured, size, numberToFactor);
-
-
-                let (measured, size) = E02_FindApproxPeriod(numberToFactor, guess);
-                let size = Ceiling(Lg(1.0* IntAsDouble(size)))^2;
-                let (_, candidatePeriod) = E03_FindPeriodCandidate(measured, size, numberToFactor);
-                // print all
+                let (measured, _) = E02_FindApproxPeriod(numberToFactor, guess);
+                let (_, candidatePeriod) = E03_FindPeriodCandidate(measured, 2^numInputQubits, numberToFactor);
                 // Message($"Measured: {measured}, Size: {size}, Candidate period: {candidatePeriod}");
 
-                // Verify the candidate period with a classical check
-                if not (candidatePeriod % 2 == 0 and candidatePeriod > 1) {
-                    // Message($"[x] [invalid] Period candidate {candidatePeriod} failed the valid check");
-
-                } else {
+                // Verify the candidate period with a classical check (even and > 1)
+                if (candidatePeriod % 2 == 0 and candidatePeriod > 0) {
                     // Check if the period candidate is valid
-                    let g = candidatePeriod / 2;
+                    mutable modExpG = 0;
+                    Message($"Checking period candidate: {candidatePeriod}; Guess: {guess}");
 
-                    let lower = GreatestCommonDivisorI(ExpModI(guess, g, numberToFactor) - 1, numberToFactor);
-                    let upper = GreatestCommonDivisorI(ExpModI(guess, g, numberToFactor) + 1, numberToFactor);
+                    // Quantum circuit to check the period candidate
+                    // use (inputQubits, outputQubits) = (Qubit[n*2], Qubit[n]);
+                    // within {
+                    //     ApplyToEachA(H, inputQubits);
+                    // } apply {
+                    //     Message($"guess: {guess}, candidatePeriod: {candidatePeriod}");
+                    //     E01_ModExp(guess, candidatePeriod / 2, inputQubits, outputQubits);
+                    //     Message($"ModExp done");
+                    //     Adjoint E01_QFT(inputQubits);
+
+                    //     set modExpG = MeasureInteger(inputQubits);
+                    //     Message($"Measured: {modExpG}");
+                    // }
+                    // ResetAll(inputQubits); ResetAll(outputQubits);
+                    // End of quantum circuit
+
+                    // Classical check
+                    let modExpG = ExpModI(guess, candidatePeriod / 2, numberToFactor);
+
+                    let lower = GreatestCommonDivisorI(modExpG - 1, numberToFactor);
+                    let upper = GreatestCommonDivisorI(modExpG + 1, numberToFactor);
                     Message($"Lower: {lower}, Upper: {upper}");
-
 
                     if (numberToFactor % lower == 0 and lower < numberToFactor) {
                         Message($"[FOUND] Lower factor: {lower}; Period: {candidatePeriod}");
@@ -408,16 +414,12 @@ namespace MITRE.QSD.L09 {
                     else {
                         Message($"[x] [invalid] Period candidate {candidatePeriod} failed the factor check");
                     }
-
                     Message($"[x] [mod] Period candidate {candidatePeriod} failed the mod check");
                 }
             }
 
-            if not periodFound {
-                set guess = (guess + 1) % numberToFactor;
-                if guess < 2 { set guess = 2; }
-                set numGuesses = numGuesses + 1;
-            }
+            set guess = (guess + 1) % numberToFactor;
+            if guess < 1 { set guess = 1; }
 
         } until periodFound;
 
