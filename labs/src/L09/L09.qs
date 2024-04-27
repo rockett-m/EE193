@@ -12,6 +12,8 @@
 
 namespace MITRE.QSD.L09 {
 
+    open Microsoft.Quantum.Random;
+    open MITRE.QSD.Tests.L08;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Convert;
@@ -217,6 +219,7 @@ namespace MITRE.QSD.L09 {
             E01_ModExp(base, modulus, inputReg, outputReg);
             // apply the inverse quantum Fourier transform
             Adjoint E01_QFT(inputReg);
+            // BigEndianQFT(inputReg);
             // measure the input register
             set measured = MeasureInteger(inputReg);
             // reset qubits
@@ -252,68 +255,140 @@ namespace MITRE.QSD.L09 {
     /// # Output
     /// A tuple representing the convergent that you found. The first element
     /// should be the numerator, and the second should be the denominator.
+    // function E03_FindPeriodCandidate (
+    //     numerator : Int,
+    //     denominator : Int,
+    //     denominatorThreshold : Int
+    // ) : (Int, Int) {
+    //     // TODO
+    //     mutable (numer_test, denom_test) = (numerator, denominator);
+    //     // base case: first two convergents are 0/1 and 1/0
+    //     mutable convergent = (0, 1);
+    //     mutable highestConvergent = (0, 1);
+
+    //     // avoid division by zero
+    //     mutable p = [0, 1];
+    //     mutable q = [1, 0];
+    //     // m_i = a_i * m_{i-1} + m_{i-2}
+    //     // d_i = a_i * d_{i-1} + d_{i-2}
+
+    //     mutable finish = false;
+
+    //     // denominatorThreshold is the maximum value for the denominator
+    //     for i in 2 .. denominatorThreshold - 1 {
+    //         if not finish {
+
+    //             let a_i = Floor(IntAsDouble(numer_test) / IntAsDouble(denom_test));
+    //             let remainder = numer_test - (a_i * denom_test);
+
+    //             // append new fraction to end of list
+    //             set p += [p[0] + p[1] * a_i];
+    //             set q += [q[0] + q[1] * a_i];
+
+    //             // pop first element to keep list size of 2 [i-2, i-1]
+    //             set p = p[1 .. Length(p)-1];
+    //             set q = q[1 .. Length(q)-1];
+
+    //             if (q[Length(q)-1] < denominatorThreshold) {
+    //                 set convergent = (p[Length(p)-1], q[Length(q)-1]);
+    //             }
+
+    //             if (remainder == 0) {
+    //                 set finish = true;
+    //             } else {
+    //                 set numer_test = denom_test;
+    //                 set denom_test = remainder;
+    //             }
+
+    //             let (highestNum, highestDen) = highestConvergent;
+    //             let (num, den) = convergent;
+    //             if ((num / den >= highestNum / highestDen) and (den > highestDen)) {
+    //                 set highestConvergent = convergent;
+    //             }
+    //         }
+    //     }
+    //     // print convergent for debugging
+    //     let (highestNumerator, highestDenominator) = highestConvergent;
+    //     if highestNumerator > 0 and highestDenominator > 0 {
+    //         Message($"Highest convergent: {highestConvergent}");
+    //     } else {
+    //         Message($"Convergent: {convergent}");
+    //     }
+    //     return highestConvergent;
+    // }
+
+
     function E03_FindPeriodCandidate (
         numerator : Int,
         denominator : Int,
         denominatorThreshold : Int
     ) : (Int, Int) {
         // TODO
-        mutable (numer_test, denom_test) = (numerator, denominator);
-        // base case: first two convergents are 0/1 and 1/0
-        mutable convergent = (0, 1);
-        mutable highestConvergent = (0, 1);
+        mutable (P_i, Q_i) = (numerator, denominator); // init as input
 
-        // avoid division by zero
-        mutable p = [0, 1];
-        mutable q = [1, 0];
-        // m_i = a_i * m_{i-1} + m_{i-2}
-        // d_i = a_i * d_{i-1} + d_{i-2}
+        mutable (a_i, r_i) = (0, 0);
+        mutable (m_i, d_i, v_i) = (0, 0, 0); // set these in the calcs
 
-        mutable finish = false;
+        // initial convergents
+        mutable (m_i_prev, m_i_prev_prev) = (1, 0);
+        mutable (d_i_prev, d_i_prev_prev) = (1, 1);
 
-        // denominatorThreshold is the maximum value for the denominator
-        for i in 2 .. denominatorThreshold {
-            if not finish {
+        // loop until we find a convergent with a denominator less than the threshold
+        mutable (i, done) = (0, false);
 
-                let a_i = Floor(IntAsDouble(numer_test) / IntAsDouble(denom_test));
-                let remainder = numer_test - (a_i * denom_test);
+        while i < denominatorThreshold and not done {
 
-                // append new fraction to end of list
-                set p += [p[0] + p[1] * a_i];
-                set q += [q[0] + q[1] * a_i];
+            // print out all variables and the variable name in front of them
+            Message("");
+            Message($"i: {i}; P_i: {P_i}; Q_i: {Q_i}");
+            Message($"d_i_prev_prev: {d_i_prev_prev}");
+            Message($"m_i_prev: {m_i_prev}; m_i_prev_prev: {m_i_prev_prev}; d_i_prev: {d_i_prev}");
+            Message($"a_i: {a_i}; r_i: {r_i}; m_i: {m_i}; d_i: {d_i}; v_i: {v_i}");
+            Message("");
 
-                // pop first element to keep list size of 3 [i-2, i-1, curr]
-                set p = p[1 .. Length(p)-1];
-                set q = q[1 .. Length(q)-1];
+            // make sure we don't divide by zero
+            if Q_i == 0 {
+                return (0, 0);
+            }
 
-                if (q[Length(q)-1] <= denominatorThreshold) {
-                    set convergent = (p[Length(p)-1], q[Length(q)-1]);
-                }
+            // int division quotient is a_i
+            // int division remainder is r_i
+            set a_i = Floor(IntAsDouble(P_i) / IntAsDouble(Q_i));
+            set r_i = P_i % Q_i;
 
-                if (remainder == 0) {
-                    set finish = true;
-                } else {
-                    set numer_test = denom_test;
-                    set denom_test = remainder;
-                }
+            // calculate new convergent
+            set m_i = a_i * m_i_prev + m_i_prev_prev;
+            set d_i = a_i * d_i_prev + d_i_prev_prev;
 
-                let (highestNum, highestDen) = highestConvergent;
-                let (num, den) = convergent;
-                if ((num / den >= highestNum / highestDen) and (den > highestDen)) {
-                    set highestConvergent = convergent;
-                }
+            // if remainder is zero, we are done
+            if r_i == 0 and d_i < denominatorThreshold and d_i > 0 {
+                Message($"Convergent: {m_i}, {d_i}");
+                set done = true;
+            // if remainder is not zero, continue
+            } else {
+                // update previous values
+                set P_i = Q_i;
+                set Q_i = r_i;
 
+                set v_i = m_i / d_i;
+
+                set m_i_prev_prev = m_i_prev;
+                set m_i_prev = m_i;
+
+                set d_i_prev_prev = d_i_prev;
+                set d_i_prev = d_i;
+
+                set i += 1;
+                Message($"Current: i: {i}; m_i: {m_i};  d_i: {d_i}");
             }
         }
-        // print convergent for debugging
-        let (highestNumerator, highestDenominator) = highestConvergent;
-        if highestNumerator > 0 and highestDenominator > 0 {
-            Message($"Highest convergent: {highestConvergent}");
-        } else {
-            // Message($"Convergent: {convergent}");
-        }
-        return highestConvergent;
+
+        Message($"Convergent: m_i: {m_i}, d_i: {d_i}");
+        return (m_i, d_i);
     }
+
+
+
 
 
     /// # Summary
@@ -353,76 +428,66 @@ namespace MITRE.QSD.L09 {
         mutable guess = initialGuess;
         mutable periodFound = false;
         mutable period = guess;
-
+        mutable numGuesses = 10000;
         // if calling ExpMod, which is the costliest operation, use Quantum Exp not classical
+        // Step 3a: Calculate the period of the function y = guess^x mod numberToFactor
         let n = Ceiling(Lg(IntAsDouble(numberToFactor + 1)));
+        let (numInputQubits, numOutputQubits) = (n*2, n);
 
         repeat {
             // Message($"Trying with guess: {guess}");
-
-            let gcd = GreatestCommonDivisorI(guess, numberToFactor);
-            if (gcd == 1) {
+            // Step 2: GCD on guess, numberToFactor: check coprime
+            if GreatestCommonDivisorI(guess, numberToFactor) == 1 { // coprime
                 // Message($"Trying with guess: {guess}");
-                let n = Ceiling(Lg(IntAsDouble(numberToFactor + 1)));
-                let (numInputQubits, numOutputQubits) = (n*2, n);
-
+                // Step 3: Find the period guess^x mod numberToFactor
+                // Step 3b-c: Measure some X such that X/2^n is close to the period m/p
                 let (measured, _) = E02_FindApproxPeriod(numberToFactor, guess);
-                let (_, candidatePeriod) = E03_FindPeriodCandidate(measured, 2^numInputQubits, numberToFactor);
-                // Message($"Measured: {measured}, Size: {size}, Candidate period: {candidatePeriod}");
+                // Step 3d: Do continue fraction expansion on X / 2^n
+                mutable (_, candidatePeriod) = E03_FindPeriodCandidate(measured, 2^numInputQubits, numberToFactor);
 
-                // Verify the candidate period with a classical check (even and > 1)
-                if (candidatePeriod % 2 == 0 and candidatePeriod > 0) {
-                    // Check if the period candidate is valid
-                    mutable modExpG = 0;
-                    Message($"Checking period candidate: {candidatePeriod}; Guess: {guess}");
+                // even period and coprime requirement
+                // Step 3e: Check if the period is valid
+                // Step 3f: Check if guess^candidatePeriod mod numberToFactor is 1 (coprime)
+                let gcd_cand = GreatestCommonDivisorI(guess^candidatePeriod, numberToFactor);
+                if (candidatePeriod % 2 == 0 and gcd_cand == 1) {
 
-                    // Quantum circuit to check the period candidate
-                    // use (inputQubits, outputQubits) = (Qubit[n*2], Qubit[n]);
-                    // within {
-                    //     ApplyToEachA(H, inputQubits);
-                    // } apply {
-                    //     Message($"guess: {guess}, candidatePeriod: {candidatePeriod}");
-                    //     E01_ModExp(guess, candidatePeriod / 2, inputQubits, outputQubits);
-                    //     Message($"ModExp done");
-                    //     Adjoint E01_QFT(inputQubits);
+                    // Step 4: Half period exp mod check
+                    // Fail if candidatePeriod is odd and/or not half period not coprime with numberToFactor
+                    // guess^(candidatePeriod/2) mod numberToFactor is not 1
+                    // (guess ^ (candidatePeriod / 2) + 1) mod numberToFactor == 0
+                    let halfPeriodExp = ExpModI(guess, candidatePeriod / 2, numberToFactor);
 
-                    //     set modExpG = MeasureInteger(inputQubits);
-                    //     Message($"Measured: {modExpG}");
-                    // }
-                    // ResetAll(inputQubits); ResetAll(outputQubits);
-                    // End of quantum circuit
+                    let (low, high) = (halfPeriodExp - 1, halfPeriodExp + 1);
+                    let lowFactor  = GreatestCommonDivisorI(low, numberToFactor);
+                    let highFactor = GreatestCommonDivisorI(high, numberToFactor);
+                    Message($"Testing lowFactor: {lowFactor}, highFactor: {highFactor}");
 
-                    // Classical check
-                    let modExpG = ExpModI(guess, candidatePeriod / 2, numberToFactor);
-
-                    let lower = GreatestCommonDivisorI(modExpG - 1, numberToFactor);
-                    let upper = GreatestCommonDivisorI(modExpG + 1, numberToFactor);
-                    Message($"Lower: {lower}, Upper: {upper}");
-
-                    if (numberToFactor % lower == 0 and lower < numberToFactor) {
-                        Message($"[FOUND] Lower factor: {lower}; Period: {candidatePeriod}");
-                        set period = candidatePeriod;
-                        set periodFound = true;
-                        return period;
+                    // Step 5: Check guess^candidatePeriod/2 +/- 1 mod numberToFactor has no remainder
+                    // [Goal] not coprime if gcd({lowFactor, highFactor}, numberToFactor) > 1
+                    if (numberToFactor % lowFactor == 0 and lowFactor != 1) {
+                        Message("--------------------------------");
+                        Message($"Low factor: {lowFactor} is a factor of numberToFactor: {numberToFactor}");
+                        Message($"Success: Period: {candidatePeriod}");
+                        Message("--------------------------------");
+                        return candidatePeriod;
+                    } elif (numberToFactor % highFactor == 0 and highFactor != 1) {
+                        Message("--------------------------------");
+                        Message($"High factor: {highFactor} is a factor of numberToFactor: {numberToFactor}");
+                        Message($"Success: Period: {candidatePeriod}");
+                        Message("--------------------------------");
+                        return candidatePeriod;
+                    } else {
+                        Message($"Low factor: {lowFactor}, High factor: {highFactor} are not factors of numberToFactor");
                     }
-                    elif (numberToFactor % upper == 0 and upper < numberToFactor) {
-                        Message($"[FOUND] Upper factor: {upper}; Period: {candidatePeriod}");
-                        set period = candidatePeriod;
-                        set periodFound = true;
-                        return period;
-                    }
-                    else {
-                        Message($"[x] [invalid] Period candidate {candidatePeriod} failed the factor check");
-                    }
-                    Message($"[x] [mod] Period candidate {candidatePeriod} failed the mod check");
                 }
+            } else {
+                // Message($"Guess: {guess} is not coprime with numberToFactor: {numberToFactor}");
             }
-
-            set guess = (guess + 1) % numberToFactor;
-            if guess < 1 { set guess = 1; }
-
-        } until periodFound;
-
+            // Step 1: Guess a random number 1 < g < N
+            set guess = DrawRandomInt(2, numberToFactor - 1);
+            set numGuesses -= 1;
+        }
+        until periodFound or numGuesses <= 0;
         return period;
     }
 
@@ -460,11 +525,13 @@ namespace MITRE.QSD.L09 {
             return -1;
         }
         // check lower and upper gcds
-        let gcd_low = GreatestCommonDivisorI(ExpModI(guess, period / 2, numberToFactor) - 1, numberToFactor);
+        let gcd_low = GreatestCommonDivisorI(
+            ExpModI(guess, period / 2, numberToFactor) - 1, numberToFactor);
         if (gcd_low != 1 and gcd_low != numberToFactor) {
             return gcd_low;
         }
-        let gcd_high = GreatestCommonDivisorI(ExpModI(guess, period / 2, numberToFactor) + 1, numberToFactor);
+        let gcd_high = GreatestCommonDivisorI(
+            ExpModI(guess, period / 2, numberToFactor) + 1, numberToFactor);
         if (gcd_high != 1 and gcd_high != numberToFactor) {
             return gcd_high;
         }
