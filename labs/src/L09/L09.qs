@@ -255,140 +255,86 @@ namespace MITRE.QSD.L09 {
     /// # Output
     /// A tuple representing the convergent that you found. The first element
     /// should be the numerator, and the second should be the denominator.
-    // function E03_FindPeriodCandidate (
-    //     numerator : Int,
-    //     denominator : Int,
-    //     denominatorThreshold : Int
-    // ) : (Int, Int) {
-    //     // TODO
-    //     mutable (numer_test, denom_test) = (numerator, denominator);
-    //     // base case: first two convergents are 0/1 and 1/0
-    //     mutable convergent = (0, 1);
-    //     mutable highestConvergent = (0, 1);
-
-    //     // avoid division by zero
-    //     mutable p = [0, 1];
-    //     mutable q = [1, 0];
-    //     // m_i = a_i * m_{i-1} + m_{i-2}
-    //     // d_i = a_i * d_{i-1} + d_{i-2}
-
-    //     mutable finish = false;
-
-    //     // denominatorThreshold is the maximum value for the denominator
-    //     for i in 2 .. denominatorThreshold - 1 {
-    //         if not finish {
-
-    //             let a_i = Floor(IntAsDouble(numer_test) / IntAsDouble(denom_test));
-    //             let remainder = numer_test - (a_i * denom_test);
-
-    //             // append new fraction to end of list
-    //             set p += [p[0] + p[1] * a_i];
-    //             set q += [q[0] + q[1] * a_i];
-
-    //             // pop first element to keep list size of 2 [i-2, i-1]
-    //             set p = p[1 .. Length(p)-1];
-    //             set q = q[1 .. Length(q)-1];
-
-    //             if (q[Length(q)-1] < denominatorThreshold) {
-    //                 set convergent = (p[Length(p)-1], q[Length(q)-1]);
-    //             }
-
-    //             if (remainder == 0) {
-    //                 set finish = true;
-    //             } else {
-    //                 set numer_test = denom_test;
-    //                 set denom_test = remainder;
-    //             }
-
-    //             let (highestNum, highestDen) = highestConvergent;
-    //             let (num, den) = convergent;
-    //             if ((num / den >= highestNum / highestDen) and (den > highestDen)) {
-    //                 set highestConvergent = convergent;
-    //             }
-    //         }
-    //     }
-    //     // print convergent for debugging
-    //     let (highestNumerator, highestDenominator) = highestConvergent;
-    //     if highestNumerator > 0 and highestDenominator > 0 {
-    //         Message($"Highest convergent: {highestConvergent}");
-    //     } else {
-    //         Message($"Convergent: {convergent}");
-    //     }
-    //     return highestConvergent;
-    // }
-
-
     function E03_FindPeriodCandidate (
         numerator : Int,
         denominator : Int,
         denominatorThreshold : Int
     ) : (Int, Int) {
         // TODO
-        mutable (P_i, Q_i) = (numerator, denominator); // init as input
+        Message("");
+        Message($"Input:
+            Numerator: {numerator},
+            Denominator: {denominator},
+            Denominator Threshold: {denominatorThreshold}");
+        // can't divide by zero
+        if (denominator == 0 or denominatorThreshold == 0) {
+            Message("[Error] Denominator or denominator threshold is zero");
+            return (0, 0);
+        }
 
-        mutable (a_i, r_i) = (0, 0);
-        mutable (m_i, d_i, v_i) = (0, 0, 0); // set these in the calcs
+        // initialize variables (current numerator and denominator)
+        mutable (P_i, Q_i) = (numerator, denominator); // init as input
+        mutable (a_i, r_i, v_i) = (0, 0, 0.0); // set these in the calcs
 
         // initial convergents
-        mutable (m_i_prev, m_i_prev_prev) = (1, 0);
-        mutable (d_i_prev, d_i_prev_prev) = (1, 1);
+        mutable (m_arr, d_arr) = ([0, 1], [1, 0]);
+        // on iteration 0, m_i and d_i get calculated
+        mutable (m_i, d_i) = (0, 0);
 
         // loop until we find a convergent with a denominator less than the threshold
-        mutable (i, done) = (0, false);
+        mutable (i, done, iterations) = (0, false, 0);
 
-        while i < denominatorThreshold and not done {
+        // loop until we find a convergent with a denominator less than the threshold
+        while d_i < denominatorThreshold and not done and iterations < 20 {
 
             // print out all variables and the variable name in front of them
-            Message("");
-            Message($"i: {i}; P_i: {P_i}; Q_i: {Q_i}");
-            Message($"d_i_prev_prev: {d_i_prev_prev}");
-            Message($"m_i_prev: {m_i_prev}; m_i_prev_prev: {m_i_prev_prev}; d_i_prev: {d_i_prev}");
-            Message($"a_i: {a_i}; r_i: {r_i}; m_i: {m_i}; d_i: {d_i}; v_i: {v_i}");
-            Message("");
+            Message("---------------------------");
+            Message($"Beginning of iteration {iterations}"); Message("");
 
-            // make sure we don't divide by zero
-            if Q_i == 0 {
-                return (0, 0);
-            }
-
-            // int division quotient is a_i
-            // int division remainder is r_i
+            // int division quotient, remainder
             set a_i = Floor(IntAsDouble(P_i) / IntAsDouble(Q_i));
             set r_i = P_i % Q_i;
 
-            // calculate new convergent
-            set m_i = a_i * m_i_prev + m_i_prev_prev;
-            set d_i = a_i * d_i_prev + d_i_prev_prev;
+            // calculate convergent
+            set m_i = a_i * m_arr[Length(m_arr)-1] + m_arr[Length(m_arr)-2];
+            set d_i = a_i * d_arr[Length(d_arr)-1] + d_arr[Length(d_arr)-2];
+
+            set v_i = IntAsDouble(m_i) / IntAsDouble(d_i);
+
+            Message("Updated after calculatons");
+            Message($"a_i: {a_i}; r_i: {r_i}; v_i: {v_i}"); Message("");
+
+            // drop first element and append new element
+            set m_arr += [m_i];
+            set d_arr += [d_i];
+
+            if Length(m_arr) > 3 {
+                set m_arr = m_arr[1 .. Length(m_arr)-1];
+                set d_arr = d_arr[1 .. Length(d_arr)-1];
+            }
+
+            // swap values
+            set (P_i, Q_i) = (Q_i, r_i);
 
             // if remainder is zero, we are done
-            if r_i == 0 and d_i < denominatorThreshold and d_i > 0 {
-                Message($"Convergent: {m_i}, {d_i}");
+            if r_i == 0 {
+                Message("Remainder is zero, we are done");
                 set done = true;
-            // if remainder is not zero, continue
-            } else {
-                // update previous values
-                set P_i = Q_i;
-                set Q_i = r_i;
-
-                set v_i = m_i / d_i;
-
-                set m_i_prev_prev = m_i_prev;
-                set m_i_prev = m_i;
-
-                set d_i_prev_prev = d_i_prev;
-                set d_i_prev = d_i;
-
-                set i += 1;
-                Message($"Current: i: {i}; m_i: {m_i};  d_i: {d_i}");
             }
+            set iterations += 1;
         }
 
-        Message($"Convergent: m_i: {m_i}, d_i: {d_i}");
-        return (m_i, d_i);
+        // Decide which to return
+        if Q_i == 0 and d_arr[2] < denominatorThreshold and d_arr[2] > 0 {
+            Message($"[Peak Convergent (curr)]: {m_arr[2]}, {d_arr[2]} [RETURN]");
+            Message("---------------------------");
+            return (m_arr[Length(m_arr)-1], d_arr[Length(d_arr)-1]);
+        } else {
+            Message($"[Peak Convergent (prev)]: {m_arr[1]}, {d_arr[1]} [RETURN]");
+            Message("---------------------------");
+            return (m_arr[Length(m_arr)-2], d_arr[Length(d_arr)-2]);
+        }
     }
-
-
-
 
 
     /// # Summary
