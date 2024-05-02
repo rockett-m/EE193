@@ -169,6 +169,9 @@ namespace MITRE.QSD.Tests.L09 {
         mutable period = E04_FindPeriod(9, 5);
         Fact(period == 6, "Incorrect period found.");
 
+        // set period = E04_FindPeriod(21, 11);
+        // Fact(period == 6, "Incorrect period found.");
+
         set period = E04_FindPeriod(15, 7);
         Fact(period == 4, "Incorrect period found.");
     }
