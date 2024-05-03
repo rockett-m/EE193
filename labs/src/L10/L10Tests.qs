@@ -48,8 +48,17 @@ namespace MITRE.QSD.Tests.L10 {
 
     operation E02Test() : Unit {
 
-        let tests = [
-            (1, 1, 0, 2, 0),
+        let tests_one_full_adder = [
+            (0, 0, 0, 0, 0),
+            (0, 0, 1, 1, 0),
+            (0, 1, 0, 1, 0),
+            (0, 1, 1, 0, 1),
+            (1, 0, 0, 1, 0),
+            (1, 0, 1, 0, 1),
+            (1, 1, 0, 0, 1),
+            (1, 1, 1, 1, 1)];
+
+        let tests_chained_full_adders = [
             (1, 1, 1, 3, 0),
             (1, 2, 0, 3, 0),
             (1, 2, 1, 4, 0),
@@ -103,14 +112,15 @@ namespace MITRE.QSD.Tests.L10 {
             (1024, 1024, 1, 2049, 0)
         ];
 
-        for (a, b, carryIn, expectedSum, expectedCarryOut) in tests {
-            let (sum, carryOut) = E02_FullAdder_nBits(a, b, carryIn);
-            Fact(
-                sum == expectedSum and carryOut == expectedCarryOut,
-                $"Error: Expected {expectedSum}, {expectedCarryOut}"
-            );
+        for test_bench in [tests_one_full_adder, tests_chained_full_adders] {
+            for (a, b, carryIn, expectedSum, expectedCarryOut) in test_bench {
+                let (sum, carryOut) = E02_FullAdder_nBits(a, b, carryIn);
+                Fact(
+                    sum == expectedSum and carryOut == expectedCarryOut,
+                    $"Error: Expected {expectedSum}, {expectedCarryOut}"
+                );
+            }
         }
 
     }
-
 }

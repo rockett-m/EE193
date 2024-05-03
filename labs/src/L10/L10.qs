@@ -30,6 +30,11 @@ namespace MITRE.QSD.L10 {
     /// Write Endianess: Little Endian
     operation E01_FullAdder_1Bit (a: Int, b: Int, carryIn: Int) : (Int, Int) {
 
+        if a < 0 or a > 1 or b < 0 or b > 1 or carryIn < 0 or carryIn > 1 {
+            Message($"[Error] Invalid input. a, b, carryIn must be 0 or 1");
+            return (0, 0);
+        }
+
         use qubits = Qubit[4];
         mutable (sum, carryOut) = (0, 0);
 
@@ -79,6 +84,13 @@ namespace MITRE.QSD.L10 {
     operation E02_FullAdder_nBits (a: Int, b: Int, carryIn: Int) : (Int, Int) {
         // if a == 15 then with Ceiling(Lg(IntAsDouble(15))) = 4 qubits needed for a
         // if b == 17 then with Ceiling(Lg(IntAsDouble(17))) = 5 qubits needed for b
+        Message("");
+        Message($"[Info] a: {a}, b: {b}, carryIn: {carryIn}");
+
+        if a < 0 or b < 0 or carryIn < 0 {
+            Message($"[Error] Negative numbers not supported");
+            return (0, 0);
+        }
 
         let a_min_qubits = MaxI(1, Ceiling(Lg(IntAsDouble(a))));
         let b_min_qubits = MaxI(1, Ceiling(Lg(IntAsDouble(b))));
@@ -94,11 +106,10 @@ namespace MITRE.QSD.L10 {
         if numInputQubits > 22 {
             Message($"[Error] Cannot handle numbers this large. Max qubits: 22, requested: {numInputQubits}");
             return (0, 0);
-        } else {
-            Message($"[Info] Qubits needed: {numInputQubits}");
-            Message($"[Info] aNumQubits: {inputNumQubitsEach},
-                bNumQubits: {inputNumQubitsEach}; carryIn/sum: 1; carryOut: 1");
         }
+
+        Message($"[Info] Qubits needed: {numInputQubits}");
+        Message($"[Info] aNumQubits: {inputNumQubitsEach}, bNumQubits: {inputNumQubitsEach}; carryIn/sum: 1; carryOut: 1");
 
         use qubits = Qubit[numInputQubits];
         mutable (sum, carryOut) = (0, 0);
@@ -115,9 +126,9 @@ namespace MITRE.QSD.L10 {
         // Encode b into qubits
         let bBits = IntAsBoolArray(b, inputNumQubitsEach);
         for i in 0 .. Length(bBits) - 1 {
-            let index = inputCounter;
+            let index = inputCounter + i;
             // apply X gate if bool True in binary representation
-            if bBits[i] { X(qubits[inputCounter]); }
+            if bBits[i] { X(qubits[index]); }
             set inputCounter += 1;
         }
 
@@ -127,25 +138,37 @@ namespace MITRE.QSD.L10 {
         Message($"[Info] Input Counter: {inputCounter}");
         DumpMachine();
 
+        mutable (a_idx, b_idx) = (0, inputNumQubitsEach);
 
-        // Apply Full Adder
+
+        // Chain Full Adders for each bit
         for i in 0 .. inputNumQubitsEach - 1 {
-            CCNOT(qubits[i], qubits[i + inputNumQubitsEach], qubits[inputCounter]);
-            CNOT(qubits[i], qubits[i + inputNumQubitsEach]);
-            CCNOT(qubits[i + inputNumQubitsEach], qubits[inputCounter], qubits[inputCounter + 1]);
-            CNOT(qubits[i + inputNumQubitsEach], qubits[inputCounter]);
-            CNOT(qubits[i], qubits[i + inputNumQubitsEach]);
+
+            Message($"Looking at qubits: {i}, {i + inputNumQubitsEach}");
+            CCNOT(qubits[a_idx], qubits[b_idx], qubits[Length(qubits) - 1]);
+            CNOT(qubits[a_idx], qubits[b_idx]);
+            CCNOT(qubits[b_idx], qubits[Length(qubits) - 2], qubits[Length(qubits) - 1]);
+            CNOT(qubits[b_idx], qubits[Length(qubits) - 2]);
+            CNOT(qubits[a_idx], qubits[b_idx]);
+            set (a_idx, b_idx) = (a_idx + 1, b_idx + 1);
         }
         // when measuring do sum of
         // M(qubits[i = 0]), M(qubits[i=0 + aNumQubits=5]) ...
         // M(qubits[i]), M(qubits[i + aNumQubits=5]) ...
         // M(qubits[i + 2*aNumQubits - 1]) == One ? 1 | 0;
 
+        // apply X gate to a and b and carryIn qubits when bits == 1
+
+
+
         // Measure the qubits
-        set sum = M(qubits[inputCounter - 1]) == One ? 1 | 0;
-        set carryOut = M(qubits[inputCounter]) == One ? 1 | 0;
+        DumpMachine();
+
+
+
+        set sum = M(qubits[Length(qubits) - 2]) == One ? 1 | 0;
+        set carryOut = M(qubits[Length(qubits) - 1]) == One ? 1 | 0;
         Message("");
-        Message($"[Info] a: {a}, b: {b}, carryIn: {carryIn}");
         Message($"[Info] Sum: {sum}, Carry Out: {carryOut}");
 
         ResetAll(qubits);
