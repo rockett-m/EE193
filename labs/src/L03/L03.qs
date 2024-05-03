@@ -125,7 +125,7 @@ namespace MITRE.QSD.L03 {
         // TODO
 
         // Hint: you can start by putting all four registers into the state
-        // 1/√2(|00> + |11>), then build the final state for each register 
+        // 1/√2(|00> + |11>), then build the final state for each register
         // from there.
 
         //     |registers[0]> = 1/√2(|00> + |11>) // done
@@ -212,7 +212,7 @@ namespace MITRE.QSD.L03 {
         X(register[3]); // flip the 4th qubit to |1>
         // |register> = 1/√2(|010 1 > - |0101>)
         Z(register[3]); // phase flip the 4th qubit
-        // |register> = 1/√2(|0101> - |0110>)   
+        // |register> = 1/√2(|0101> - |0110>)
     }
 
 
@@ -283,7 +283,7 @@ namespace MITRE.QSD.L03 {
         // DumpMachine(); // print the state of the qubits
 
         // zero control for leftmost Qubit
-        // zero control for middle qubit 
+        // zero control for middle qubit
         // one control for rightmost qubit
         // entangle the target with the register
     }
@@ -422,27 +422,18 @@ namespace MITRE.QSD.L03 {
     /// this is a good first hint.
     operation C03_EncodeCosine (register : Qubit[]) : Unit {
         // TODO
-        ApplyToEach(H, register); // put the register in superposition
 
-        let angle = PI() / 4.0;
+        // 1/√2(|000> + |001>)
+        H(register[2]);
 
-        // CCNOT(register[0], register[1], register[2]); // entangle the qubits
-        CNOT(register[0], register[1]); // entangle the qubits
-        CNOT(register[1], register[2]); // entangle the qubits
-        Ry(angle, register[2]); // rotate the first qubit by π/4
+        // 1/√2*|000> + 1/2(|001> + |011>)
+        Controlled H([register[2]], register[1]);
 
+        // 1/2(|000> + |100) + 1/√8(|001> + |101> + |011> + |111>)
+        H(register[0]);
 
-        // phase flip on states 011 and 100 and 101 (3, 4, and 5 - 0-indexed)
-        
-        // X(register[0]);
-        // evens (bit 0 == 0) have 1, 0, -1, 0 amplitude
-        // bit 1 or bit 2 == 1 when bit 0 == 0
-        DumpMachine();
-        // odds (bit 0 == 1) have 1/√2, -1/√2, -1/√2, 1/√2 amplitude
-
-        // write Dirac notation for desired state (normalized)
-
-
+        // 1/2(|000> - |100) + 1/√8(|001> - |101> - |011> + |111>)
+        ApplyToEach(Z, register[0..1]);
     }
 
 
@@ -470,6 +461,19 @@ namespace MITRE.QSD.L03 {
     /// A three-qubit register in the |000> state.
     operation C04_EncodeSine (register : Qubit[]) : Unit {
         // TODO
-        fail "Not implemented.";
+        // 1/√2(|000> + |001>)
+        H(register[2]);
+
+        // 1/√2*|000> + 1/2(|001> + |011>)
+        Controlled H([register[2]], register[1]);
+
+        // 1/√2*|010> + 1/2(|011> + |001>)
+        X(register[1]);
+
+        // 1/2(|010> + |110) + 1/√8(|001> + |011> + |101> + |111>)
+        H(register[0]);
+
+        // 1/2(|010> - |110) + 1/√8(|001> + |011> - |101> - |111>)
+        Z(register[0]);
     }
 }
