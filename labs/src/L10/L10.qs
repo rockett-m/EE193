@@ -256,6 +256,30 @@ namespace MITRE.QSD.L10 {
 
     }
 
+
+    // break into smaller steps to debug
+    // measurement as one for example
+
+    // entry point - for debugger
+    // @entry_point
+    // breakpoints don't work...
+    //
+
+    // where do expectations change from what's happening from program in reality
+    // unit test subcomponents
+
+    // can measure qubits and print values ... better to have measurement in unit tests
+    // than in program
+    // dump register - try this to see sum reg, carry reg, etc.
+    // do measurement in unit tests
+
+    ////////////////
+    // 996+1024 = 2020! Multiply final carry by 2^10 and add to total and it works
+    ///////////////
+    // DO THISSSSSSSS
+
+
+
     /// Full Adder
     /// Input:
     /// Two integers a and b
@@ -355,15 +379,24 @@ namespace MITRE.QSD.L10 {
             set carryIdx w/= i <- i;
         }
 
+        // Measuring complete
         ResetAll(reg_a + reg_b + reg_c + reg_s);
+
+        // adds nothing if carryOut is 0, adds 2^neededQubits if carryOut is 1
+        // += {0,1}*2^Length(reg_c) to sum
+        set sum += carryBits[neededQubits] * 2^neededQubits + carryBits[0];
+        Message($"Sum with carryOut MSB accounted for (for overflow sums): {sum}"); Message("");
 
         Message($"idx:    LSB {carryIdx} MSB"); Message("");
 
-        let overflowCarryOut = carryBits[neededQubits];
-        Message($"Carry bits: {carryBits};  carryOut = {overflowCarryOut}");
+        let carryOutLSB = carryBits[0];
+        Message($"Carry bits: {carryBits};  carryOut = {carryOutLSB}");
 
-        Message(""); Message($"[RETURN] Sum: {sum}, Carry Out: {overflowCarryOut}");
-        return (sum, overflowCarryOut);
+        Message(""); Message($"[RETURN] Sum: {sum}, Carry Out: {carryOutLSB}");
+        return (sum, carryOutLSB);
+
+        // ONLY RETURN SUM.....!!!!!!!!!! that is the point of LSB carryout
+        // return sum;
     }
 
 
