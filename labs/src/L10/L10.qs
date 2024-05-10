@@ -17,27 +17,15 @@ namespace MITRE.QSD.L10 {
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Unstable.Arithmetic;
 
-    /// Half Adder
+    /// Full Adder
     /// Input:
-    /// Two qubits a and b
-    /// Carry in c, qubit
+    /// Two integers a and b
+    /// Carry in c, 0
     ///
     /// Output:
-    /// Nothing
-    /// calculates the sum of a and b
-    /// calculates the carry out
-    operation E00_Half_Adder(a: Qubit,
-                             b: Qubit,
-                             sum: Qubit,
-                             carryIn: Qubit) : Unit {
-        // b = a XOR b
-        CNOT(a, b);
-        // sum = a XOR b
-        CNOT(a, sum);
-        // Carry = a AND b
-        CCNOT(a, b, carryIn);
-    }
-
+    /// Two integers a and b
+    /// The sum of a and b
+    /// Carry out c
     operation E00_Full_Adder(a: Qubit,
                              b: Qubit,
                              carryIn: Qubit,
@@ -55,10 +43,11 @@ namespace MITRE.QSD.L10 {
 
     operation E00_Add_Two_Ints(a: Int, b: Int, carryIn: Int) : (Int, Int) {
         // Check if input is valid and exit if not
-        let (inputNumQubitsEach, numInputQubitsTotal, valid) = E02_InputHandling(a, b, carryIn);
-        if not valid { Message($"[Error] Invalid input. Exiting."); return (0, 0); }
+        let valid = E02_InputHandling(a, b, carryIn);
+        if valid < 0 { Message($"[Error] Invalid input. Exiting."); return (0, 0); }
         Message($"[Checkpoint] Input validation done"); Message("");
 
+        let inputNumQubitsEach = 4;
         // Allocate qubits and encode a, b, carryIn into qubits
         use (a_reg, b_reg, carryOut_reg, sum_reg) =
             (Qubit[inputNumQubitsEach], Qubit[inputNumQubitsEach], Qubit(), Qubit[inputNumQubitsEach + 1]);
@@ -173,14 +162,14 @@ namespace MITRE.QSD.L10 {
     /// The sum of a and b
     /// Carry out c
     /// Boolean indicating if input is valid
-    operation E02_InputHandling(a: Int, b: Int, carryIn: Int) : (Int, Int, Bool) {
+    operation E02_InputHandling(a: Int, b: Int, carryIn: Int) : Int {
         // if a == 15 then with Ceiling(Lg(IntAsDouble(15))) = 4 qubits needed for a
         // if b == 17 then with Ceiling(Lg(IntAsDouble(17))) = 5 qubits needed for b
         Message(""); Message($"[Info] a: {a}, b: {b}, carryIn: {carryIn}");
 
         if a < 0 or b < 0 or carryIn < 0 or carryIn > 1 {
             Message($"[Error] Negative numbers not supported and carryIn must be 0 or 1. Exiting.");
-            return (0, 0, false);
+            return -1;
         }
 
         // storing 512 takes 2^9 + 1 bits since 2^9 = 512 = 1000000000 (10 bits) and 511 = 111111111 (9 bits)
@@ -196,7 +185,7 @@ namespace MITRE.QSD.L10 {
         if inputNumQubitsEach > MAX_QUBITS + 1 {
             Message($"[Error] Cannot handle numbers this large. Max value is 2^10 - 1 = 1023");
             Message($"Max qubits: {MAX_QUBITS}, requested: {inputNumQubitsEach}");
-            return (0, 0, false);
+            return -1;
         }
 
         // a qubits, b qubits, carry In/Out, and sum qubits
@@ -204,7 +193,7 @@ namespace MITRE.QSD.L10 {
 
         let n = inputNumQubitsEach;
         Message($"[Info] Qubits needed: \{total: {numInputQubitsTotal}; a: {n}, b: {n}, carryIn/Out: 1, sum: {n}\}");
-        return (inputNumQubitsEach, numInputQubitsTotal, true);
+        return 0;
     }
 
 
@@ -246,7 +235,14 @@ namespace MITRE.QSD.L10 {
         return bin_arr;
     }
 
-
+    /// Encode Binary Array to Qubits
+    /// Qubits are little endian
+    ///
+    /// Input:
+    /// Integer array of binary representation of num
+    /// Qubits to encode into
+    ///
+    /// Output:
     operation EncodeBinaryArrayToQubits(bin_arr: Int[], qubits: Qubit[]) : Unit {
         let bitSize = Length(bin_arr);
 
@@ -291,12 +287,14 @@ namespace MITRE.QSD.L10 {
     /// Carry out c
     ///
     /// Write Endianess: Little Endian
-    operation E03_FullAdder_nBits (a: Int,
-                                   b: Int) : (Int, Int) {
+    operation E03_RippleCarryAdderTwoInts (a: Int,
+                                   b: Int) : Int {
 
         // Check if input is valid and exit if not
         // let (inputNumQubitsEach, numInputQubitsTotal, valid) = E02_InputHandling(a, b, 0);
         // let (inputNumQubitsEach, numInputQubitsTotal, valid) = E02_InputHandling(a, b);
+        let inputValid = E02_InputHandling(a, b, 0);
+        if inputValid != 0 { Message($"[Error] Invalid input. Exiting."); return -1; }
         // if not valid { Message($"[Error] Invalid input. Exiting."); return (0, 0); }
         Message($"Testing a + b : {a} + {b}");
         Message($"[Checkpoint] Input validation done"); Message("");
@@ -393,92 +391,7 @@ namespace MITRE.QSD.L10 {
         Message($"Carry bits: {carryBits};  carryOut = {carryOutLSB}");
 
         Message(""); Message($"[RETURN] Sum: {sum}, Carry Out: {carryOutLSB}");
-        return (sum, carryOutLSB);
-
-        // ONLY RETURN SUM.....!!!!!!!!!! that is the point of LSB carryout
-        // return sum;
+        return sum;
     }
 
-
-
-    operation E04_temp(a: Int, b: Int, carryIn: Int) : (Int, Int) {
-        // Check if input is valid and exit if not
-        let (inputNumQubitsEach, numInputQubitsTotal, valid) = E02_InputHandling(a, b, carryIn);
-        if not valid { Message($"[Error] Invalid input. Exiting."); return (0, 0); }
-        Message($"[Checkpoint] Input validation done"); Message("");
-
-        /////////////////////////////////////////////////////////////////////////////////////////
-        // Allocate qubits and encode a, b, carryIn into qubits
-        use qubits = Qubit[numInputQubitsTotal];
-
-
-        mutable inputCounter = 0;
-        for inputVal in [a, b] {
-            let bits = IntAsBoolArray(inputVal, inputNumQubitsEach);
-            for i in 0 .. Length(bits) - 1 {
-                // apply X gate if bool True in binary representation
-                if bits[i] { X(qubits[inputCounter]); }
-                set inputCounter += 1;
-            }
-        }
-        // Encode carryIn into qubit (2nd to last qubit)
-        if carryIn == 1 { X(qubits[Length(qubits) - 2]); }
-
-        Message($"Length of qubits used: {Length(qubits)}"); DumpMachine();
-        Message($"[Checkpoint] Encoding done"); Message("");
-
-        /////////////////////////////////////////////////////////////////////////////////////////
-        // Use Full Adder to add a and b
-        mutable (a_idx, b_idx) = (0, inputNumQubitsEach);
-        mutable (sum_idx, carry_idx) =  (2*inputNumQubitsEach, 2*inputNumQubitsEach + 1);
-
-        for i in 0 .. inputNumQubitsEach - 1 {
-            Message($"Looking at index {i} and at qubit: {i + inputNumQubitsEach}");
-
-            CCNOT(qubits[a_idx], qubits[b_idx], qubits[carry_idx]);
-            CNOT(qubits[a_idx], qubits[b_idx]);
-            CCNOT(qubits[b_idx], qubits[sum_idx], qubits[carry_idx]);
-            CNOT(qubits[b_idx], qubits[sum_idx]);
-            CNOT(qubits[a_idx], qubits[b_idx]);
-
-            set (a_idx, b_idx) = (a_idx + 1, b_idx + 1);
-            set (sum_idx, carry_idx) = (sum_idx + 1, carry_idx + 1);
-        }
-        DumpMachine(); Message($"[Checkpoint] Full Adder done"); Message("");
-
-        /////////////////////////////////////////////////////////////////////////////////////////
-        // Measure the qubits
-
-        // convert qubits to integers
-        mutable sumBits = [0, size=inputNumQubitsEach];
-        for i in 0 .. inputNumQubitsEach - 1 {
-            Message($"Looking at index {i} and at qubit: {i + inputNumQubitsEach}");
-            // mark 1 if qubit is One at each index
-            set sumBits w/= i <- (M(qubits[i + inputNumQubitsEach]) == One ? 1 | 0); // doesnt work
-            set sumBits w/= i <- (M(qubits[i + inputNumQubitsEach*2]) == One ? 1 | 0); // works for 4 qubits
-            Message($"Sum bits {i}: {sumBits[i]}");
-        }
-        Message($"Sum bits: {sumBits}"); DumpMachine();
-
-        // use power of 2 to convert binary to integer
-        // with the first bit being the least significant bit
-        mutable sum = 0;
-        for i in 0 .. Length(sumBits) - 1 {
-            set sum += sumBits[i] * 2^i;
-        }
-
-        // carryIn XOR Sum MSB for carryOut
-        CNOT(qubits[Length(qubits) - 2], qubits[Length(qubits) - 1]);
-
-        // mutable sum =      M(qubits[Length(qubits) - 2]) == One ? 1 | 0;
-        mutable carryOut = M(qubits[Length(qubits) - 1]) == One ? 1 | 0;
-        Message(""); Message($"[Info] Sum: {sum}, Carry Out: {carryOut}");
-        Message($"[Checkpoint] Measurement done"); Message("");
-
-        /////////////////////////////////////////////////////////////////////////////////////////
-        // Clean up and return sum and carryOut
-        ResetAll(qubits);
-        Message(""); Message($"[RETURN] Sum: {sum}, Carry Out: {carryOut}");
-        return (sum, carryOut);
-    }
 }
