@@ -16,6 +16,18 @@ namespace MITRE.QSD.L10 {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Unstable.Arithmetic;
+    open Microsoft.Quantum.ResourceEstimation;
+
+
+    // @EntryPoint()
+    // operation RunProgram() : Unit {
+    //     let a = 996;
+    //     let b = 1023;
+    //     let expected_sum = 2019;
+    //     let sum = E03_RippleCarryAdderTwoInts(a, b);
+    //     Message($"Sum: {sum}, Expected Sum: {expected_sum}");
+    // }
+
 
     /// Full Adder
     /// Input:
@@ -119,7 +131,6 @@ namespace MITRE.QSD.L10 {
 
         use qubits = Qubit[4];
         mutable (sum, carryOut) = (0, 0);
-
         // DumpMachine();
 
         // Encode a into qubit (apply X gate if a == 1)
@@ -128,7 +139,6 @@ namespace MITRE.QSD.L10 {
         if b == 1 { X(qubits[1]); }
         // Encode carryIn into qubit
         if carryIn == 1 { X(qubits[2]); }
-
         // DumpMachine();
 
         // Apply Full Adder
@@ -167,7 +177,7 @@ namespace MITRE.QSD.L10 {
         // if b == 17 then with Ceiling(Lg(IntAsDouble(17))) = 5 qubits needed for b
         Message(""); Message($"[Info] a: {a}, b: {b}, carryIn: {carryIn}");
 
-        if a < 0 or b < 0 or carryIn < 0 or carryIn > 1 {
+        if a < 0 or a > 1023 or b < 0 or b > 1023 or carryIn < 0 or carryIn > 1 {
             Message($"[Error] Negative numbers not supported and carryIn must be 0 or 1. Exiting.");
             return -1;
         }
@@ -253,27 +263,60 @@ namespace MITRE.QSD.L10 {
     }
 
 
-    // break into smaller steps to debug
-    // measurement as one for example
-
-    // entry point - for debugger
-    // @entry_point
-    // breakpoints don't work...
+    // Function to process the sum bits
+    // Input:
+    // Register of sum bits
     //
+    // Output:
+    // Array of sum bits
+    operation ProcessSumBits(reg_s : Qubit[]) : (Int[], Int[], Int) {
+        mutable sumBits = [0, size = Length(reg_s)];
+        mutable sumIdx = [0, size = Length(reg_s)];
+        mutable sum = 0;
 
-    // where do expectations change from what's happening from program in reality
-    // unit test subcomponents
+        for i in 0 .. Length(reg_s) - 1 {
+            // += to decimal sum if measurement is 1 at index i
+            if (M(reg_s[i]) == One) { // Use `n - i - 1` instead of `i` to measure the qubits in `reg_s`
+                let idx = Length(reg_s) - i - 1;
+                set sum += 2^i;
+                // set sum += 2^idx;
+                Message($"Sum bit (idx {i} = 1); sum: {sum}     += 2^{i}");
+                set sumBits w/= i <- 1;
+            } else {
+                Message($"Sum bit (idx {i} = 0); sum: {sum}"); // Use `n - i - 1` instead of `i` in the message
+            }
+            set sumIdx w/= i <- i;
+        }
+        Message($"idx:  LSB {sumIdx} MSB");
+        Message($"Sum bits: {sumBits};  sum = {sum}"); DumpMachine();
+        ResetAll(reg_s);
+        return (sumIdx, sumBits, sum);
+    }
 
-    // can measure qubits and print values ... better to have measurement in unit tests
-    // than in program
-    // dump register - try this to see sum reg, carry reg, etc.
-    // do measurement in unit tests
 
-    ////////////////
-    // 996+1024 = 2020! Multiply final carry by 2^10 and add to total and it works
-    ///////////////
-    // DO THISSSSSSSS
+    /// Process Carry Bits
+    /// Input:
+    /// Register of carry bits
+    ///
+    /// Output:
+    /// Array of carry bits
+    operation ProcessCarryBits(reg_c : Qubit[]) : (Int[], Int[]) {
+        mutable carryBits = [0, size = Length(reg_c)];
+        mutable carryIdx = [0, size = Length(reg_c)];
 
+        for i in 0 .. Length(reg_c) - 1 {
+            if (M(reg_c[i]) == One) {
+                Message($"Carry bit (idx {i} = 1)");
+                set carryBits w/= i <- 1;
+            } else {
+                Message($"Carry bit (idx {i} = 0)");
+            }
+            set carryIdx w/= i <- i;
+        }
+        Message($"idx:    LSB {carryIdx} MSB"); Message("");
+        ResetAll(reg_c);
+        return (carryIdx, carryBits);
+    }
 
 
     /// Full Adder
@@ -287,6 +330,7 @@ namespace MITRE.QSD.L10 {
     /// Carry out c
     ///
     /// Write Endianess: Little Endian
+    @EntryPoint()
     operation E03_RippleCarryAdderTwoInts (a: Int,
                                    b: Int) : Int {
 
@@ -336,61 +380,18 @@ namespace MITRE.QSD.L10 {
         E00_Full_Adder(reg_a[nq - 1], reg_b[nq - 1], reg_c[nq - 1], reg_s[nq - 1], reg_c[nq]);
 
         DumpMachine(); Message($"[Checkpoint] Full Adder done"); Message("");
+        ResetAll(reg_a + reg_b);
 
         /////////////////////////////////////////////////////////////////////////////////////////
-        // Measure the qubits and take the sum
-        mutable sumBits = [0, size = neededQubits + 1];
-        mutable sumIdx = [0, size = neededQubits + 1];
-        mutable sum = 0;
-
-        for i in 0 .. Length(reg_s) - 1 {
-            // += to decimal sum if measurement is 1 at index i
-            if (M(reg_s[i]) == One) { // Use `n - i - 1` instead of `i` to measure the qubits in `reg_s`
-                let idx = Length(reg_s) - i - 1;
-                set sum += 2^i;
-                // set sum += 2^idx;
-                Message($"Sum bit (idx {i} = 1); sum: {sum}     += 2^{i}");
-                set sumBits w/= i <- 1;
-            } else {
-                Message($"Sum bit (idx {i} = 0); sum: {sum}"); // Use `n - i - 1` instead of `i` in the message
-            }
-            set sumIdx w/= i <- i;
-        }
-
-        Message($"idx:  LSB {sumIdx} MSB");
-        Message($"Sum bits: {sumBits};  sum = {sum}"); DumpMachine();
-
-
-        mutable carryBits = [0, size = neededQubits + 1];
-        mutable carryIdx = [0, size = neededQubits + 1];
-        mutable carryOut = 0;
-
-        for i in 0 .. Length(reg_c) - 1 {
-            // += to decimal sum if measurement is 1 at index i
-            if (M(reg_c[i]) == One) { // Use `n - i - 1` instead of `i` to measure the qubits in `reg_c`
-                // set carryOut += 2^idx;
-                Message($"Carry bit (idx {i} = 1)"); // Use `n - i - 1` instead of `i` in the message
-                set carryBits w/= i <- 1;
-            } else {
-                Message($"Carry bit (idx {i} = 0)");
-            }
-            set carryIdx w/= i <- i;
-        }
-
-        // Measuring complete
-        ResetAll(reg_a + reg_b + reg_c + reg_s);
+        // Measure the qubits for sum and carry
+        mutable (sumBits, sumIdx, sum) = ProcessSumBits(reg_s);
+        mutable (carryIdx, carryBits) =  ProcessCarryBits(reg_c);
 
         // adds nothing if carryOut is 0, adds 2^neededQubits if carryOut is 1
         // += {0,1}*2^Length(reg_c) to sum
         set sum += carryBits[neededQubits] * 2^neededQubits + carryBits[0];
         Message($"Sum with carryOut MSB accounted for (for overflow sums): {sum}"); Message("");
 
-        Message($"idx:    LSB {carryIdx} MSB"); Message("");
-
-        let carryOutLSB = carryBits[0];
-        Message($"Carry bits: {carryBits};  carryOut = {carryOutLSB}");
-
-        Message(""); Message($"[RETURN] Sum: {sum}, Carry Out: {carryOutLSB}");
         return sum;
     }
 
